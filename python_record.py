@@ -1,0 +1,148 @@
+import os
+import time
+import subprocess
+import shutil
+import signal
+from datetime import datetime
+from USBSoundcardMic import *
+from TimelapseCamera import *
+import json
+from pprint import pprint
+
+print('Start of recording script...')
+
+# Print current git commit information
+print('Current git commit info:')
+subprocess.call('git log -1',shell=True)
+
+# Print current system time
+print('System time is {}'.format(datetime.now()))
+
+# Make sure in the correct dir (so paths all make sense)
+#os.chdir('/home/pi/rpi-eco-monitoring')
+
+# If these packages aren't installed yet, install them (ignore stdout pipe error if installed)
+subprocess.call('dpkg -l | grep -qw fswebcam || sudo apt-get install fswebcam', shell=True)
+subprocess.call('dpkg -l | grep -qw lftp || sudo apt-get -y install lftp', shell=True)
+subprocess.call('dpkg -l | grep -qw libav-tools || sudo apt-get -y install libav-tools', shell=True)
+subprocess.call('dpkg -l | grep -qw usbmodeswitch || sudo apt-get -y install usbmodeswitch', shell=True)
+
+# Schedule restart at 2am (does in separate process)
+print('Scheduling restart for 2am')
+subprocess.call('bash ./bash_schedule_restart.sh 02:00',shell=True)
+
+# Clear the temporary files
+working_folder = './tmp_data'
+def cleanup_tempfiles():
+    print('Cleaning up temporary files')
+    shutil.rmtree(working_folder, ignore_errors=True)
+
+# Clean up when script is exited
+user_quit = False
+def exit_handler(signal, frame):
+    print('On my way out!')
+    user_quit = True
+    cleanup_tempfiles()
+    os._exit(0)
+
+# Setup exit handler
+signal.signal(signal.SIGINT, exit_handler)
+
+# Extract Raspberry Pi serial from cpuinfo file
+def getserial():
+    cpuserial = "0000000000000000"
+    try:
+        f = open('/proc/cpuinfo','r')
+        for line in f:
+             if line[0:6]=='Serial':
+                cpuserial = line[10:26]
+        f.close()
+    except:
+        cpuserial = "ERROR000000000"
+    return cpuserial
+
+# Sync local files with remote server
+def server_sync_loop(sync_interval):
+    # Sleep for half interval so server sync is out of phase with the data capturing
+    time.sleep(sync_interval/2)
+
+    while 1:
+        # Update time from internet
+        print('\nUpdating time from internet before ftp sync')
+        subprocess.call('bash ./bash_update_time.sh',shell=True)
+
+        print('\nStarted FTP sync\n')
+        subprocess.call('bash ./bash_restart_udev.sh && sleep 3',shell=True)
+        subprocess.call('bash ./ftp_upload.sh', shell=True)
+        print('\nFinished FTP sync\n')
+
+        # Check if user has quit
+        if user_quit==True:
+            break
+
+        # Perform next sync out of phase with recording
+        sync_t = latest_start_t + (sync_interval/2)
+        wait_t = sync_t - time.time()
+        while wait_t < 0:
+            wait_t += sync_interval
+
+        print('\nWaiting {} secs to next sync\n'.format(wait_t))
+        time.sleep(wait_t)
+
+# Set final folder to hold recorded files waiting to be synced
+serial = getserial()
+final_folder = './continuous_monitoring_data/RPiID-{}'.format(serial)
+
+# Remove any temporary files left behind
+cleanup_tempfiles()
+
+# Read config file and initialise appropriate sensor
+config = json.load(open('config.json'))
+
+delay_between_captures = config['general']['delay_between_captures']
+server_sync_interval = delay_between_captures
+
+if config['sensor']['type'] is 'USBSoundcardMic':
+    opts = config['sensor']['options']
+    sensor = USBSoundcardMic(opts['record_length'],opts['compress_data'])
+    server_sync_interval += opts['record_length']
+    print('Using USBSoundcardMic sensor')
+elif config['sensor']['type'] is 'TimelapseCamera':
+    opts = config['sensor']['options']
+    sensor = TimelapseCamera()
+    print('Using TimelapseCamera sensor')
+else:
+    print('MAJOR ERROR: sensor type {} not found'.format(config['sensor']['type']))
+    exit()
+
+# Remove empty directories that may be left behind, from bottom up
+for subdir, dirs, files in os.walk(final_folder,topdown=False):
+    if not os.listdir(subdir):
+        print('removing empty directory: {}'.format(subdir))
+        shutil.rmtree(subdir, ignore_errors=True)
+
+# Initialise background thread to do remote sync
+sync_thread = Thread(target=server_sync_loop, args=(server_sync_interval,))
+sync_thread.start()
+
+while 1:
+    # Record start time so we know to time sync halfway through
+    latest_start_t = time.time()
+
+    # Folders to hold files
+    startDate = time.strftime('%Y-%m-%d')
+    temp_day_folder = '{}/{}'.format(working_folder,startDate)
+    final_day_folder = '{}/{}'.format(final_folder,startDate)
+    if not os.path.exists(temp_day_folder):
+        os.makedirs(temp_day_folder)
+    if not os.path.exists(final_day_folder):
+        os.makedirs(final_day_folder)
+
+    # Capture data from the sensor
+    raw_data_fname,final_fname_no_ext = sensor.capture_data(temp_day_folder,final_day_folder)
+
+    # Postprocess the raw data in a separate thread
+    postprocess_t = Thread(target=sensor.postprocess, args=(raw_data_fname,final_fname_no_ext,))
+    postprocess_t.start()
+
+    time.sleep(delay_between_captures)
