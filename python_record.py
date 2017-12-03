@@ -17,7 +17,8 @@ subprocess.call('git log -1',shell=True)
 print('System time is {}'.format(datetime.now()))
 
 # Make sure in the correct dir (so paths all make sense)
-os.chdir('/home/pi/rpi-eco-monitoring')
+dir_path = os.path.dirname(os.path.realpath(__file__))
+os.chdir(dir_path)
 
 # If these packages aren't installed yet, install them (ignore stdout pipe error if installed)
 subprocess.call('dpkg -l | grep -qw fswebcam || sudo apt-get install fswebcam', shell=True)
