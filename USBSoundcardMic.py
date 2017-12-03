@@ -26,10 +26,7 @@ class USBSoundcardMic(object):
 
         # Record for a specific duration
         print('\n{} - Started recording\n'.format(ntpath.basename(raw_data_fname)))
-        subprocess.call('touch {}'.format(raw_data_fname),shell=True)
-        print('Recorded!')
-        subprocess.call('sleep {}'.format(self.record_length),shell=True)
-        #subprocess.call('sudo bash ./audio_sensor_scripts/bash_record_audio.sh {} {} {}'.format(self.record_length,raw_data_fname,recording_file),shell=True)
+        subprocess.call('sudo bash ./audio_sensor_scripts/bash_record_audio.sh {} {} {}'.format(self.record_length,raw_data_fname,recording_file),shell=True)
         print('\n{} - Finished recording\n'.format(ntpath.basename(raw_data_fname)))
 
         return raw_data_fname,final_fname_no_ext
