@@ -60,7 +60,7 @@ def getserial():
     return cpuserial
 
 # Sync local files with remote server
-def server_sync_loop(sync_interval,ftp_details):
+def server_sync_loop(sync_interval,ftp_details,data_top_folder_name):
     # Build ftp string from configured details
     if ftp_details['use_ftps']:
         start = 'ftps://'
@@ -78,7 +78,7 @@ def server_sync_loop(sync_interval,ftp_details):
 
         print('\nStarted FTP sync\n')
         #subprocess.call('bash ./bash_restart_udev.sh && sleep 3',shell=True)
-        subprocess.call('bash ./ftp_upload.sh {}'.format(ftp_string), shell=True)
+        subprocess.call('bash ./ftp_upload.sh {} {}'.format(ftp_string,data_top_folder_name), shell=True)
         print('\nFinished FTP sync\n')
 
         # Check if user has quit
@@ -96,7 +96,8 @@ def server_sync_loop(sync_interval,ftp_details):
 
 # Set final folder to hold recorded files waiting to be synced
 serial = getserial()
-final_folder = './continuous_monitoring_data/RPiID-{}'.format(serial)
+data_top_folder_name = 'continuous_monitoring_data'
+final_folder = './{}/RPiID-{}'.format(data_top_folder_name,serial)
 
 # Remove any temporary files left behind
 cleanup_tempfiles()
@@ -138,7 +139,7 @@ for subdir, dirs, files in os.walk(final_folder,topdown=False):
         shutil.rmtree(subdir, ignore_errors=True)
 
 # Initialise background thread to do remote sync
-sync_thread = Thread(target=server_sync_loop, args=(server_sync_interval,config['ftp'],))
+sync_thread = Thread(target=server_sync_loop, args=(server_sync_interval,config['ftp'],data_top_folder_name,))
 sync_thread.start()
 
 while 1:
