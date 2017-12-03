@@ -1,10 +1,11 @@
 #!/bin/bash
 
 if [ ! -d ./continuous_monitoring_data ]; then
+	echo heyyyy
 	exit 1
 fi
 
-source ftp_server_details.sh
+ftp_string=$1
 
 lftp -c "set ftp:list-options -a;
 set ssl-force on;

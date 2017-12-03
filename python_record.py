@@ -4,8 +4,6 @@ import subprocess
 import shutil
 import signal
 from datetime import datetime
-from USBSoundcardMic import *
-from TimelapseCamera import *
 import json
 from pprint import pprint
 
@@ -62,7 +60,14 @@ def getserial():
     return cpuserial
 
 # Sync local files with remote server
-def server_sync_loop(sync_interval):
+def server_sync_loop(sync_interval,ftp_details):
+    # Build ftp string from configured details
+    if ftp_details['use_ftps']:
+        start = 'ftps://'
+    else:
+        start = 'ftp://'
+    ftp_string = '{}{}:{}@{}'.format(start,ftp_details['username'],ftp_details['password'],ftp_details['hostname'])
+
     # Sleep for half interval so server sync is out of phase with the data capturing
     time.sleep(sync_interval/2)
 
@@ -72,15 +77,15 @@ def server_sync_loop(sync_interval):
         subprocess.call('bash ./bash_update_time.sh',shell=True)
 
         print('\nStarted FTP sync\n')
-        subprocess.call('bash ./bash_restart_udev.sh && sleep 3',shell=True)
-        subprocess.call('bash ./ftp_upload.sh', shell=True)
+        #subprocess.call('bash ./bash_restart_udev.sh && sleep 3',shell=True)
+        subprocess.call('bash ./ftp_upload.sh {}'.format(ftp_string), shell=True)
         print('\nFinished FTP sync\n')
 
         # Check if user has quit
         if user_quit==True:
             break
 
-        # Perform next sync out of phase with recording
+        # Perform next sync out of phase with data capturing (accounting for the time taken to perform last upload)
         sync_t = latest_start_t + (sync_interval/2)
         wait_t = sync_t - time.time()
         while wait_t < 0:
@@ -96,24 +101,35 @@ final_folder = './continuous_monitoring_data/RPiID-{}'.format(serial)
 # Remove any temporary files left behind
 cleanup_tempfiles()
 
+###############################
+# Edit this below part when you have implemented a new sensor type
+
+# Sensor classes
+from USBSoundcardMic import *
+from TimelapseCamera import *
+
 # Read config file and initialise appropriate sensor
 config = json.load(open('config.json'))
 
-delay_between_captures = config['general']['delay_between_captures']
+opts = config['sensor']['options']
+delay_between_captures = opts['delay_between_captures']
+print('delay_between_captures {}'.format(delay_between_captures))
 server_sync_interval = delay_between_captures
 
-if config['sensor']['type'] is 'USBSoundcardMic':
-    opts = config['sensor']['options']
+# Do specific sensor initialisation
+if config['sensor']['type'].lower() == 'USBSoundcardMic'.lower():
     sensor = USBSoundcardMic(opts['record_length'],opts['compress_data'])
+    # For audio, sync timings should depend on recorded file length
     server_sync_interval += opts['record_length']
     print('Using USBSoundcardMic sensor')
-elif config['sensor']['type'] is 'TimelapseCamera':
-    opts = config['sensor']['options']
+elif config['sensor']['type'].lower() == 'TimelapseCamera'.lower():
     sensor = TimelapseCamera()
     print('Using TimelapseCamera sensor')
 else:
-    print('MAJOR ERROR: sensor type {} not found'.format(config['sensor']['type']))
+    print('MAJOR ERROR: sensor type {} not found. Run \'python setup.py\' to fix config file'.format(config['sensor']['type']))
     exit()
+
+###############################
 
 # Remove empty directories that may be left behind, from bottom up
 for subdir, dirs, files in os.walk(final_folder,topdown=False):
@@ -122,7 +138,7 @@ for subdir, dirs, files in os.walk(final_folder,topdown=False):
         shutil.rmtree(subdir, ignore_errors=True)
 
 # Initialise background thread to do remote sync
-sync_thread = Thread(target=server_sync_loop, args=(server_sync_interval,))
+sync_thread = Thread(target=server_sync_loop, args=(server_sync_interval,config['ftp'],))
 sync_thread.start()
 
 while 1:
@@ -144,5 +160,6 @@ while 1:
     # Postprocess the raw data in a separate thread
     postprocess_t = Thread(target=sensor.postprocess, args=(raw_data_fname,final_fname_no_ext,))
     postprocess_t.start()
+
 
     time.sleep(delay_between_captures)
