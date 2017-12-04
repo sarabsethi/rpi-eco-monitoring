@@ -1,5 +1,7 @@
 # rpi-eco-monitoring
 
+This is part of a project developing a fully autonomous ecosystem monitoring unit. The full details of the device is described in an [academic paper](http://www.bbc.com), step by step instructions of setting one up from scratch can be found [on our website](https://sarabsethi.github.io/autonomous_ecosystem_monitoring/), and this page focuses more on the details of the software running on the device.
+
 ## Setup
 
 ### Setup from our pre-prepared SD card image
@@ -30,5 +32,10 @@ To implement a new sensor type simply inherit from the base class ``Sensor`` and
 For worked examples see classes made for monitoring audio from a USB audio card (``USBSoundcardMic.py``) and for capturing time-lapse images from a USB camera (``TimelapseCamera.py``)
 
 Then edit ``python_record.py`` and ``setup.py`` where indicated as comments in the code to include your new class of sensor
+
+## Authors
+This is a cross disciplinary research project based at Imperial College London, across the Faculties of Engineering, Natural Sciences and Life Sciences. 
+
+Sarab Sethi, Rob Ewers, Nick Jones, Lorenzo Picinali
 
 More extensive documentation to come - any questions feel free to [drop me an email](mailto:s.sethi16@imperial.ac.uk)
