@@ -11,7 +11,8 @@ cd /home/pi/rpi-eco-monitoring
 ### TASKS TO RUN EVERY BOOT UP
 
 # Restart udev to simulate hotplugging of 3G dongle
-bash ./bash_restart_udev.sh
+sudo service udev stop
+sudo service udev start
 
 tries=0
 while true; do

@@ -2,8 +2,9 @@ import time
 from threading import Thread
 import subprocess
 import os
+from Sensor import *
 
-class TimelapseCamera:
+class TimelapseCamera(Sensor):
 
     def capture_data(self,temp_out_dir,final_out_dir):
         # Name images by capture time
@@ -25,4 +26,7 @@ class TimelapseCamera:
     # No postprocessing is done since the image is captured directly to jpeg
     def postprocess(self,raw_data_fname,final_fname_no_ext):
         final_fname = '{}.jpeg'.format(final_fname_no_ext)
-        os.rename(raw_data_fname,final_fname)
+        Sensor.postprocess(self,raw_data_fname,final_fname)
+
+    def cleanup():
+        pass

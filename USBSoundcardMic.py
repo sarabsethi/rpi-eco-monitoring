@@ -3,8 +3,9 @@ from threading import Thread
 import subprocess
 import os
 import ntpath
+from Sensor import *
 
-class USBSoundcardMic(object):
+class USBSoundcardMic(Sensor):
 
     def __init__(self,record_length,compress_data):
         self.record_length = record_length
@@ -26,7 +27,8 @@ class USBSoundcardMic(object):
 
         # Record for a specific duration
         print('\n{} - Started recording\n'.format(ntpath.basename(raw_data_fname)))
-        subprocess.call('sudo bash ./audio_sensor_scripts/bash_record_audio.sh {} {} {}'.format(self.record_length,raw_data_fname,recording_file),shell=True)
+        subprocess.call('sudo arecord --device hw:1,0 --rate 44100 --format S16_LE --duration {} {}'.format(self.record_length,raw_data_fname),shell=True)
+        os.rename(recording_file,raw_data_fname)
         print('\n{} - Finished recording\n'.format(ntpath.basename(raw_data_fname)))
 
         return raw_data_fname,final_fname_no_ext
@@ -36,11 +38,20 @@ class USBSoundcardMic(object):
         if self.compress_data:
             # Compress the raw audio file to mp3 format
             final_fname = '{}.mp3'.format(final_fname_no_ext)
+            temp_comp_fname = raw_data_fname + '_temp.mp3'
+
             print('\n{} - Starting compression\n'.format(ntpath.basename(raw_data_fname)))
-            subprocess.call('bash ./audio_sensor_scripts/bash_compress_audio_mp3.sh {} {}'.format(raw_data_fname,final_fname),shell=True)
+            subprocess.call('avconv -loglevel panic -i {} -codec:a libmp3lame -filter:a "volume=5" -qscale:a 0 -ac 1 {} >/dev/null 2>&1'.format(raw_data_fname,temp_comp_fname),shell=True)
             print('\n{} - Finished compression\n'.format(ntpath.basename(final_fname)))
+
+            os.rename(temp_comp_fname,final_fname)
+            os.remove(raw_data_fname)
         else:
             # Don't compress, store as wav
             print('\nNo postprocessing of audio data: {}\n'.format(ntpath.basename(raw_data_fname)))
             final_fname = '{}.wav'.format(final_fname_no_ext)
             os.rename(raw_data_fname,final_fname)
+
+    def cleanup():
+        if os.path.exists(self.recording_file):
+           os.remove(self.recording_file)

@@ -2,13 +2,13 @@
 *.aac
 *.wav
 *.jpg
+
 *.save
 *.json
 *_log.txt
-./test_scripts/*.wav
-./audio_data/
-./continuous_monitoring_data/
-./tmp_data/
 ./tmp*
 test.*
 *.pyc
+
+continuous_monitoring_data/
+tmp_data/

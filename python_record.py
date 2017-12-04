@@ -28,7 +28,7 @@ subprocess.call('dpkg -l | grep -qw usbmodeswitch || sudo apt-get -y install usb
 
 # Schedule restart at 2am (does in separate process)
 print('Scheduling restart for 2am')
-subprocess.call('bash ./bash_schedule_restart.sh 02:00',shell=True)
+subprocess.call('(sudo shutdown -c && sudo shutdown -r 02:00) &',shell=True)
 
 # Clear the temporary files
 working_folder = './tmp_data'
@@ -78,7 +78,6 @@ def server_sync_loop(sync_interval,ftp_details,data_top_folder_name):
         subprocess.call('bash ./bash_update_time.sh',shell=True)
 
         print('\nStarted FTP sync\n')
-        #subprocess.call('bash ./bash_restart_udev.sh && sleep 3',shell=True)
         subprocess.call('bash ./ftp_upload.sh {} {}'.format(ftp_string,data_top_folder_name), shell=True)
         print('\nFinished FTP sync\n')
 
