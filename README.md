@@ -24,7 +24,7 @@ If you would rather [start using a stock Raspbian image](https://www.raspberrypi
 
 ## Implementing new sensors
 
-To implement a new sensor type simply inherit from the base class ``Sensor`` and implement the three functions:
+To implement a new sensor type simply create a class that implements the three functions:
 * ``capture_data`` - capture data from the sensor input and store it temporarily in raw unprocessed format
 * ``postprocess`` - process the raw data in the appropriate manner (e.g. compress it)
 * ``cleanup`` - clean up any temporary files
