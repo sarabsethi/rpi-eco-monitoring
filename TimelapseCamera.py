@@ -2,9 +2,8 @@ import time
 from threading import Thread
 import subprocess
 import os
-from Sensor import *
 
-class TimelapseCamera(Sensor):
+class TimelapseCamera(object):
 
     def capture_data(self,temp_out_dir,final_out_dir):
         # Name images by capture time
@@ -19,14 +18,15 @@ class TimelapseCamera(Sensor):
             subprocess.call('fswebcam -D 5 -S 20 -p YUYV -r {} {}'.format(res,raw_data_fname),shell=True)
         else:
             print('No camera detected');
-        subprocess.call('touch {}'.format(raw_data_fname),shell=True)
+            final_fname_no_ext = final_fname_no_ext + '_ERROR_no-camera-detected'
+            open(raw_data_fname, 'a').close()
 
         return raw_data_fname,final_fname_no_ext
 
     # No postprocessing is done since the image is captured directly to jpeg
     def postprocess(self,raw_data_fname,final_fname_no_ext):
         final_fname = '{}.jpeg'.format(final_fname_no_ext)
-        Sensor.postprocess(self,raw_data_fname,final_fname)
+        os.rename(raw_data_fname,final_fname)
 
-    def cleanup():
+    def cleanup(self):
         pass

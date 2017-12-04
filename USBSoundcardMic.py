@@ -3,20 +3,17 @@ from threading import Thread
 import subprocess
 import os
 import ntpath
-from Sensor import *
 
-class USBSoundcardMic(Sensor):
+class USBSoundcardMic(object):
 
     def __init__(self,record_length,compress_data):
         self.record_length = record_length
         self.compress_data = compress_data
 
-        self.recording_file = 'currentlyRecording.wav'
-        if os.path.exists(self.recording_file):
-           os.remove(self.recording_file)
-
         # Load alsactl file - increased microphone volume level
         subprocess.call('alsactl --file ./audio_sensor_scripts/asound.state restore', shell=True)
+
+        self.cleanup()
 
     # Capture raw audio data from USB sound card
     def capture_data(self,temp_out_dir,final_out_dir):
@@ -52,6 +49,7 @@ class USBSoundcardMic(Sensor):
             final_fname = '{}.wav'.format(final_fname_no_ext)
             os.rename(raw_data_fname,final_fname)
 
-    def cleanup():
+    def cleanup(self):
+        self.recording_file = 'currentlyRecording.wav'
         if os.path.exists(self.recording_file):
            os.remove(self.recording_file)
