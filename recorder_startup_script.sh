@@ -8,8 +8,6 @@ printf '############################################\nStart of ecosystem monitor
 # Change to correct folder
 cd /home/pi/rpi-eco-monitoring
 
-### TASKS TO RUN EVERY BOOT UP
-
 # Restart udev to simulate hotplugging of 3G dongle
 sudo service udev stop
 sudo service udev start
