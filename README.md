@@ -20,6 +20,15 @@ If you would rather [start using a stock Raspbian image](https://www.raspberrypi
 * Configure the Pi to run ``recorder_startup_script.sh`` on boot by adding ``sudo -u pi ~/rpi-eco-monitoring/recorder_startup_script.sh;`` to the last line of the file ``/etc/profile`` (requires root)
 * Then follow the instructions above to complete the setup
 
-## TODO: Implementing new sensors
+## Implementing new sensors
+
+To implement a new sensor type simply inherit from the base class ``Sensor`` and implement the three functions:
+* ``capture_data`` - capture data from the sensor input and store it temporarily in raw unprocessed format
+* ``postprocess`` - process the raw data in the appropriate manner (e.g. compress it)
+* ``cleanup`` - clean up any temporary files
+
+For worked examples see classes made for monitoring audio from a USB audio card (``USBSoundcardMic.py``) and for capturing time-lapse images from a USB camera (``TimelapseCamera.py``)
+
+Then edit ``python_record.py`` and ``setup.py`` where indicated as comments in the code to include your new class of sensor
 
 More extensive documentation to come - any questions feel free to [drop me an email](mailto:s.sethi16@imperial.ac.uk)
