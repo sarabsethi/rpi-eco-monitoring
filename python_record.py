@@ -42,6 +42,7 @@ def exit_handler(signal, frame):
     print('On my way out!')
     user_quit = True
     cleanup_tempfiles()
+    sensor.cleanup()
     os._exit(0)
 
 # Setup exit handler
