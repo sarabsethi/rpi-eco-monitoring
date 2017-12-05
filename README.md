@@ -5,7 +5,7 @@ This is part of a project developing a fully autonomous ecosystem monitoring uni
 ## Setup
 
 ### Setup from our pre-prepared SD card image
-To setup the monitoring unit from our pre-prepared SD card image follow these steps:
+To setup the monitoring unit from [our pre-prepared SD card image](https://www.dropbox.com/s/q9zynny0aajrcue/SD_card_rpi-eco-monitoring_lts.img?dl=0) follow these steps:
 * Boot the Raspberry Pi with our prepared SD card inserted. When you see ``Recorder script started`` press ``Ctrl+C``
 * Type ``cd ~/rpi-eco-monitoring``
 * Run ``python setup.py`` and follow the prompts. This will create a ``config.json`` file which contains the sensor type, its configuration and the FTP server details. 
