@@ -22,7 +22,7 @@ while true; do
 	    printf "Offline"
 	fi
 
-	printf 'Waiting for internet connection before continuing (10 tries max)'
+	printf 'Waiting for internet connection before continuing (10 tries max)\n'
 	sleep 1
 
 	let tries=tries+1
@@ -42,12 +42,12 @@ last_sha=$(git rev-parse HEAD)
 #git pull
 git fetch origin
 git reset --hard origin/master
-printf 'Pulled from github'
+printf 'Pulled from github\n'
 now_sha=$(git rev-parse HEAD)
 
 # Check if this file has changed - reboot if so
 changed_files="$(git diff-tree -r --name-only --no-commit-id $last_sha $now_sha)"
-printf "$changed_files" | grep --quiet "recorder_startup_script" && sudo reboot
+echo "$changed_files" | grep --quiet "recorder_startup_script" && sudo reboot
 
 # Add in current date and time to log files
 currentDate=$(date +"%Y-%m-%d_%H.%M")
