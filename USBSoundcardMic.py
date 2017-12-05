@@ -7,8 +7,8 @@ import ntpath
 class USBSoundcardMic(object):
 
     def __init__(self,record_length,compress_data):
-        self.record_length = record_length
-        self.compress_data = compress_data
+        self.record_length = int(record_length)
+        self.compress_data = bool(compress_data)
 
         # Load alsactl file - increased microphone volume level
         subprocess.call('alsactl --file ./audio_sensor_scripts/asound.state restore', shell=True)
