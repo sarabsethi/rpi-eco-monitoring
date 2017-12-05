@@ -24,8 +24,14 @@ class USBSoundcardMic(object):
 
         # Record for a specific duration
         print('\n{} - Started recording\n'.format(ntpath.basename(raw_data_fname)))
-        subprocess.call('sudo arecord --device hw:1,0 --rate 44100 --format S16_LE --duration {} {}'.format(self.record_length,self.recording_file),shell=True)
-        os.rename(self.recording_file,raw_data_fname)
+        try:
+            subprocess.call('sudo arecord --device hw:1,0 --rate 44100 --format S16_LE --duration {} {}'.format(self.record_length,self.recording_file),shell=True)
+            os.rename(self.recording_file,raw_data_fname)
+        except:
+            print('Error recording from audio card. Creating dummy file')
+            final_fname_no_ext = final_fname_no_ext + '_ERROR_audio-record-failed'
+            open(raw_data_fname, 'a').close()
+
         print('\n{} - Finished recording\n'.format(ntpath.basename(raw_data_fname)))
 
         return raw_data_fname,final_fname_no_ext
