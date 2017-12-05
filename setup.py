@@ -44,8 +44,10 @@ config_file = 'config.json'
 if os.path.exists(config_file):
     config_from_file = json.load(open(config_file))
 
-# Replace the default config vals with those in the file
-config = merge_dicts(config_default,config_from_file)
+    # Replace the default config vals with those in the file
+    config = merge_dicts(config_default,config_from_file)
+else:
+    config = config_default
 
 print('Hello! Follow these instructions to perform a one-off set up of your ecosystem monitoring unit\n')
 
@@ -55,7 +57,6 @@ initial_sensor_type = config['sensor']['type']
 
 ###############################
 # Edit this below part when you have implemented a new sensor type
-###############################
 available_sensor_types = ['USBSoundcardMic','TimelapseCamera']
 while not valid_sensor:
     config['sensor']['type'] = process_input('Which type of sensor are you using? Options are {} '.format(available_sensor_types),config['sensor']['type'])
@@ -72,6 +73,8 @@ while not valid_sensor:
     else:
         print('Sorry \'{}\' is not a valid sensor type'.format(config['sensor']['type']))
         config['sensor']['type'] = initial_sensor_type
+
+###############################
 
 
 print('\nNow let\'s do the FTP server details...')
