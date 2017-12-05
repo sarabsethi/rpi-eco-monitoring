@@ -20,12 +20,6 @@ print('System time is {}'.format(datetime.now()))
 dir_path = os.path.dirname(os.path.realpath(__file__))
 os.chdir(dir_path)
 
-# If these packages aren't installed yet, install them (ignore stdout pipe error if installed)
-subprocess.call('dpkg -l | grep -qw fswebcam || sudo apt-get install fswebcam', shell=True)
-subprocess.call('dpkg -l | grep -qw lftp || sudo apt-get -y install lftp', shell=True)
-subprocess.call('dpkg -l | grep -qw libav-tools || sudo apt-get -y install libav-tools', shell=True)
-subprocess.call('dpkg -l | grep -qw usbmodeswitch || sudo apt-get -y install usbmodeswitch', shell=True)
-
 # Schedule restart at 2am (does in separate process)
 print('Scheduling restart for 2am')
 subprocess.call('(sudo shutdown -c && sudo shutdown -r 02:00) &',shell=True)

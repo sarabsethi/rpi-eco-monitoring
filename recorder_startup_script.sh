@@ -5,6 +5,12 @@ printf '############################################\nStart of ecosystem monitor
 # just as a back up schedule a reboot for 24 hours (in case something goes wrong before scheduling the 2am reboot)
 (sudo shutdown -r +1440) &
 
+# Install all required packages
+sudo apt-get -y install fswebcam
+sudo apt-get -y install lftp
+sudo apt-get -y install libav-tools
+sudo apt-get -y install usbmodeswitch
+
 # Change to correct folder
 cd /home/pi/rpi-eco-monitoring
 
@@ -60,5 +66,5 @@ piId=$(cat /proc/cpuinfo | grep Serial | cut -d ' '  -f 2)
 logFileName="$piId""_""$currentDate"_log.txt
 
 # Start recording script
-printf 'End of startup script'
+printf 'End of startup script\n'
 sudo python -u python_record.py |& tee $logFileName
