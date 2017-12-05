@@ -26,9 +26,6 @@ while true; do
 	fi
 done
 
-# Install all required packages
-sudo apt-get -y install fswebcam lftp libav-tools usb-modeswitch ntpdate
-
 # Change to correct folder
 cd /home/pi/rpi-eco-monitoring
 
