@@ -9,6 +9,23 @@ printf '############################################\nStart of ecosystem monitor
 sudo service udev stop
 sudo service udev start
 
+tries=0
+while true; do
+	timeout 2s wget -q --spider http://google.com
+	if [ $? -eq 0 ]; then
+		printf "Online\n"
+    break
+	else
+	    printf "Offline\n"
+	fi
+	printf 'Waiting for internet connection before continuing (10 tries max)\n'
+	sleep 1
+	let tries=tries+1
+	if [[ $tries -eq 10 ]] ;then
+		break
+	fi
+done
+
 # Install all required packages
 sudo apt-get -y install fswebcam
 sudo apt-get -y install lftp
@@ -18,25 +35,6 @@ sudo apt-get -y install ntpdate
 
 # Change to correct folder
 cd /home/pi/rpi-eco-monitoring
-
-tries=0
-while true; do
-	timeout 2s wget -q --spider http://google.com
-	if [ $? -eq 0 ]; then
-		printf "Online"
-    break
-	else
-	    printf "Offline"
-	fi
-
-	printf 'Waiting for internet connection before continuing (10 tries max)\n'
-	sleep 1
-
-	let tries=tries+1
-	if [[ $tries -eq 10 ]] ;then
-		break
-	fi
-done
 
 # Update time from internet
 sudo bash ./bash_update_time.sh
