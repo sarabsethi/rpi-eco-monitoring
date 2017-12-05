@@ -42,7 +42,8 @@ eval $(ssh-agent -s)
 last_sha=$(git rev-parse HEAD)
 #git pull
 git fetch origin
-git reset --hard origin/master
+branch=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
+git reset --hard origin/$branch
 printf 'Pulled from github\n'
 now_sha=$(git rev-parse HEAD)
 
