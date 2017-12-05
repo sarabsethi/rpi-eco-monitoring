@@ -10,7 +10,7 @@ To setup the monitoring unit from our pre-prepared SD card image follow these st
 * Type ``cd ~/rpi-eco-monitoring``
 * Run ``python setup.py`` and follow the prompts. This will create a ``config.json`` file which contains the sensor type, its configuration and the FTP server details. 
 * Make sure the timezone is set correctly. Check by typing ``sudo dpkg-reconfigure tzdata`` and following the prompts 
-* If your SD card is larger than the size of our pre-prepared image run ``sudo raspi-config`` and choose _Expand Filesystem_
+* If your SD card is larger than the size of our pre-prepared image (4GB) run ``sudo raspi-config`` and choose: _Advanced Options_ -> _Expand Filesystem_. Press ``Esc`` when this is complete
 * Type ``sudo halt`` to shut down the Pi
 * Take the microSD card from the Pi, and make a copy of it onto your computer (How?). Now you can clone as many of these SD cards as you need for your monitoring devices with no extra setup required 
 
@@ -18,8 +18,10 @@ To setup the monitoring unit from our pre-prepared SD card image follow these st
 If you would rather start using a stock Raspbian image, there's an extra couple of steps before you start the above process. The below steps assume you have downloaded and installed the [Raspbian Stretch Lite image](https://www.raspberrypi.org/downloads/raspbian/).
 
 * Login when prompted with user 'pi' and password 'raspberry'
-* Type ``sudo raspi-config`` and configure the Pi to boot to a command line, without login required: option _Boot Options_ -> _Desktop / CLI_ -> _Console Autologin_
+* Type ``sudo raspi-config`` and configure the Pi to boot to a command line, without login required: option _Boot Options_ -> _Desktop / CLI_ -> _Console Autologin_. Press ``Esc`` when this is complete
+* Install git: ``sudo apt-get install git``
 * Clone this repository in the home directory of the Raspberry pi: ``git clone https://github.com/sarabsethi/rpi-eco-monitoring.git``
+* Make sure all the scripts in the repository are executable: ``chmod +x ~/rpi-eco-monitoring/*``
 * Configure the Pi to run ``recorder_startup_script.sh`` on boot by adding ``sudo -u pi ~/rpi-eco-monitoring/recorder_startup_script.sh;`` to the last line of the file ``/etc/profile`` (requires root)
 * Then follow the instructions above to complete the setup
 
