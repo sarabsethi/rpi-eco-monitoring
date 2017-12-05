@@ -10,6 +10,7 @@ sudo apt-get -y install fswebcam
 sudo apt-get -y install lftp
 sudo apt-get -y install libav-tools
 sudo apt-get -y install usbmodeswitch
+sudo apt-get -y install ntpdate
 
 # Change to correct folder
 cd /home/pi/rpi-eco-monitoring
