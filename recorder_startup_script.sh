@@ -5,6 +5,10 @@ printf '############################################\nStart of ecosystem monitor
 # just as a back up schedule a reboot for 24 hours (in case something goes wrong before scheduling the 2am reboot)
 (sudo shutdown -r +1440) &
 
+# Restart udev to simulate hotplugging of 3G dongle
+sudo service udev stop
+sudo service udev start
+
 # Install all required packages
 sudo apt-get -y install fswebcam
 sudo apt-get -y install lftp
@@ -14,10 +18,6 @@ sudo apt-get -y install ntpdate
 
 # Change to correct folder
 cd /home/pi/rpi-eco-monitoring
-
-# Restart udev to simulate hotplugging of 3G dongle
-sudo service udev stop
-sudo service udev start
 
 tries=0
 while true; do
