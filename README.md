@@ -1,6 +1,6 @@
 # rpi-eco-monitoring
 
-This is part of a project developing a fully autonomous ecosystem monitoring unit. The full details of the device is described in an [academic paper](http://www.bbc.com), step by step instructions of setting one up from scratch can be found [on our website](https://sarabsethi.github.io/autonomous_ecosystem_monitoring/), and this page focuses more on the details of the software running on the device.
+This is part of a project developing a fully autonomous ecosystem monitoring unit. The full details of the device is described in an [academic paper](http://www.bbc.com), **easy to follow step by step instructions of setting one up from scratch can be found [on our website](https://sarabsethi.github.io/autonomous_ecosystem_monitoring/)**, and this page focuses more on the details of the software running on the device, targetted at more technical users.
 
 ## Setup
 
@@ -8,7 +8,7 @@ This is part of a project developing a fully autonomous ecosystem monitoring uni
 To setup the monitoring unit from [our pre-prepared SD card image](https://www.dropbox.com/s/q9zynny0aajrcue/SD_card_rpi-eco-monitoring_lts.img?dl=0) follow these steps:
 * Boot the Raspberry Pi with our prepared SD card inserted. When you see ``Recorder script started`` press ``Ctrl+C``
 * Type ``cd ~/rpi-eco-monitoring``
-* Run ``python setup.py`` and follow the prompts. This will create a ``config.json`` file which contains the sensor type, its configuration and the FTP server details. 
+* Run ``python setup.py`` and follow the prompts. This will create a ``config.json`` file which contains the sensor type, its configuration and the FTP server details. The config file can be created manually, or imported from external storage without running ``setup.py``
 * Make sure the timezone is set correctly. Check by typing ``sudo dpkg-reconfigure tzdata`` and following the prompts 
 * If your SD card is larger than the size of our pre-prepared image (4GB) run ``sudo raspi-config`` and choose: _Advanced Options_ -> _Expand Filesystem_. Press ``Esc`` when this is complete
 * Type ``sudo halt`` to shut down the Pi
