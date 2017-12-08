@@ -89,14 +89,18 @@ class USBSoundcardMic(object):
         Static method defining the config options and defaults for the sensor class
         """
         return [{'name': 'record_length',
+                 'type': float,
                  'default': 1200.0,
-                 'setup': 'What is the time in seconds of the audio segments?'},
+                 'prompt': 'What is the time in seconds of the audio segments?'},
                 {'name': 'compress_data',
-                 'default': True,
-                 'setup': 'Should the audio data be compressed from WAV to VBR mp3?'},
+                 'type': int,
+                 'default': 1,
+                 'prompt': 'Should the audio data be compressed from WAV to VBR mp3?',
+                  'valid': [0, 1]},
                 {'name': 'capture_delay',
+                 'type': float,
                  'default': 0.0,
-                 'setup': 'How long should the system wait between audio samples?'},
+                 'prompt': 'How long should the system wait between audio samples?'}
                 ]
 
     def capture_data(self):
@@ -131,7 +135,7 @@ class USBSoundcardMic(object):
         # current working file
         wfile = os.path.join(self.wdir, self.current_file) + '.wav'
 
-        if self.compress_data:
+        if self.compress_data == 'y':
             # Compress the raw audio file to mp3 format
             ofile = os.path.join(self.udir, self.current_file) + '.mp3'
 

@@ -1,88 +1,129 @@
 import json
 import os
-import readline
+import sys
+import sensors
+import inspect
 
-# Process user input and return value
-def process_input(prompt,current_val):
-    user_input = raw_input("{} (blank = {}): ".format(prompt,current_val))
-    if user_input.lower() is 'y':
-        user_input = True
-    elif user_input.lower() is 'n':
-        user_input = False
-    elif user_input is '':
-        user_input = current_val
 
-    # If value is numerical convert to float
-    try:
-        user_input = float(user_input)
-    except ValueError:
-        pass
+def config_parse(opt, cnfg):
+    """
+    Method to parse a config option (dictionary with name, prompt, type, optional default,
+    optional list of valid values), validate and append the choice to an existing
+    config dictionary.
 
-    return user_input
+    Parameters:
+        opt: A config option dictionary.
+        cnfg: The config dictionary to extend.
+    """
 
-# merge two dicts, b values take priority where there are clashes
-def merge_dicts(a, b, path=None):
-    "merges b into a"
-    if path is None: path = []
-    for key in b:
-        if key in a:
-            if isinstance(a[key], dict) and isinstance(b[key], dict):
-                merge_dicts(a[key], b[key], path + [str(key)])
+    if 'default' in opt.keys():
+        opt['dft_str'] = '\nPress return to accept default value [{}]'.format(opt['default'])
+    else:
+        opt['dft_str'] = ""
+
+    if 'valid' in opt.keys():
+        opt['vld_str'] = ', valid options: '
+        vld_opts = ', '.join([str(vl) for vl in opt['valid']])
+        opt['vld_str'] += vld_opts
+    else:
+        opt['vld_str'] = ""
+
+    valid_choice = False
+    target_type = opt['type']
+
+    print('{prompt} [{name}{vld_str}]{dft_str}'.format(**opt))
+
+    while not valid_choice:
+        value = raw_input()
+        try:
+            if value == '' and 'default' in opt.keys():
+                value = opt['default']
+                valid_choice = True
             else:
-                a[key] = b[key]
+                value = target_type(value)
+        except ValueError:
+            print('Value must be of type {}'.format(target_type.__name__))
         else:
-            a[key] = b[key]
-    return a
+            if 'valid' in opt.keys() and value not in opt['valid']:
+                print('Value not in {}'.format(vld_opts))
+            else:
+                valid_choice = True
+                cnfg[opt['name']] = value
 
-# Setup default config values
-audio_opts_default = {'delay_between_captures':0,'record_length':1200,'compress_data':1}
-timelapse_opts_default = {'delay_between_captures':1800}
-config_default = {'sensor':{'type':'USBSoundcardMic','options':audio_opts_default},'ftp':{'username':'user','password':'pass','hostname':'host','use_ftps':1}}
 
-# Load current config values from file if previously setup
+# Don't try and merge existing configs - could be a clash of option names
+# in different sensor types which might be problematic. Replace entirely or leave alone.
+
 config_file = 'config.json'
 if os.path.exists(config_file):
-    config_from_file = json.load(open(config_file))
-
-    # Replace the default config vals with those in the file
-    config = merge_dicts(config_default,config_from_file)
-else:
-    config = config_default
-
-print('Hello! Follow these instructions to perform a one-off set up of your ecosystem monitoring unit\n')
-
-print('First lets do the sensor setup...')
-valid_sensor = False
-initial_sensor_type = config['sensor']['type']
-
-###############################
-# Edit this below part when you have implemented a new sensor type
-available_sensor_types = ['USBSoundcardMic','TimelapseCamera']
-while not valid_sensor:
-    config['sensor']['type'] = process_input('Which type of sensor are you using? Options are {} '.format(available_sensor_types),config['sensor']['type'])
-    if config['sensor']['type'].lower() == 'USBSoundcardMic'.lower():
-        valid_sensor = True
-        config['sensor']['options']['record_length'] = process_input('Length in secs of each recorded audio file',config['sensor']['options']['record_length'])
-        config['sensor']['options']['compress_data'] = process_input('Compress audio data to mp3 format before uploading? 1 or 0',config['sensor']['options']['compress_data'])
-        config['sensor']['options']['delay_between_captures'] = process_input('Delay in secs between audio recordings',config['sensor']['options']['delay_between_captures'])
-
-    elif config['sensor']['type'].lower() == 'TimelapseCamera'.lower():
-        valid_sensor = True
-        config['sensor']['options'] = timelapse_opts_default
-        config['sensor']['options']['delay_between_captures'] = process_input('Delay between image captures',config['sensor']['options']['delay_between_captures'])
+    replace = {}
+    config_parse({'prompt': 'Config file already exists. Replace?',
+                  'default': 'n',
+                  'type': str,
+                  'name': 'replace',
+                  'valid': ['y', 'n']}, replace)
+    if replace['replace'] == 'n':
+        sys.exit()
     else:
-        print('Sorry \'{}\' is not a valid sensor type'.format(config['sensor']['type']))
-        config['sensor']['type'] = initial_sensor_type
+        os.remove(config_file)
 
-###############################
+# Get the config options for the sensors by loading the available sensor classes from
+# the sensors module. The sensor_classes variable is list of tuples: (name, class_reference)
+sensor_classes = inspect.getmembers(sensors, inspect.isclass)
+sensor_numbers = [idx + 1 for idx in range(len(sensor_classes))]
+sensor_options = {nm: tp for nm, tp in zip(sensor_numbers, sensor_classes)}
+sensor_menu = [" " + str(ky) + ": " + tp[0] for ky, tp in sensor_options.iteritems()]
+
+sensor_prompt = ('Hello! Follow these instructions to perform a one-off set up of your '
+                 'ecosystem monitoring unit\nFirst lets do the sensor setup. Select one '
+                 'of the following available sensor types:\n')
+sensor_prompt += '\n'.join(sensor_menu) + '\n'
+
+# select a sensor and then call the config method of the selected class to
+# get the config options
+sensor_config = {}
+config_parse({'prompt': sensor_prompt,
+              'valid': sensor_numbers,
+              'type': int,
+              'name': 'sensor_index'}, sensor_config)
+
+# convert index to name by looking up the index in the dictionary
+sensor_config['sensor_type'] = sensor_options[sensor_config['sensor_index']][0]
+# and also call the config method
+sensor_config_options = sensor_options[sensor_config['sensor_index']][1].config()
+
+# populate the sensor config dictionary
+for option in sensor_config_options:
+    config_parse(option, sensor_config)
 
 
-print('\nNow let\'s do the FTP server details...')
-config['ftp']['username'] = process_input('FTP server username',config['ftp']['username'])
-config['ftp']['password'] = process_input('FTP server password',config['ftp']['password'])
-config['ftp']['hostname'] = process_input('FTP server hostname',config['ftp']['hostname'])
-config['ftp']['use_ftps'] = process_input('Use FTPS or FTP? 1 for FTPS, 0 for FTP',config['ftp']['use_ftps'])
+# Run the same for the FTP config
+ftp_config_options = [
+              {'name': 'username',
+               'type': str,
+               'prompt': 'Enter FTP server username'},
+              {'name': 'password',
+               'type': str,
+               'prompt': 'Enter FTP server password'},
+              {'name': 'hostname',
+               'type': str,
+               'prompt': 'Enter FTP server hostname'},
+              {'name': 'use_ftps',
+               'type': int,
+               'prompt': 'Use FTPS (1) or FTP (0)?',
+               'default': 1,
+               'valid': [0, 1]}]
 
+print("\nNow let's do the FTP server details...")
+ftp_config = {}
+
+# populate the sensor config dictionary
+for option in ftp_config_options:
+    config_parse(option, ftp_config)
+
+config = {'ftp': ftp_config, 'sensor': sensor_config}
+
+# save the config
 with open(config_file, 'w') as fp:
     json.dump(config, fp, indent=4)
 
