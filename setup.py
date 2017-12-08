@@ -33,12 +33,23 @@ def config_parse(opt, cnfg):
 
     print('{prompt} [{name}{vld_str}]{dft_str}'.format(**opt))
 
+    # need to be a little careful here in parsing raw inputs because
+    # bool() convert anything but an empty string to True
     while not valid_choice:
         value = raw_input()
         try:
             if value == '' and 'default' in opt.keys():
                 value = opt['default']
                 valid_choice = True
+            elif target_type.__name__ == 'bool':
+                if value.lower() in ['t','true']:
+                    value = True
+                    valid_choice = True
+                elif value.lower() in ['f','false']:
+                    value = False
+                    valid_choice = True
+                else:
+                    raise ValueError()
             else:
                 value = target_type(value)
         except ValueError:
@@ -89,8 +100,8 @@ config_parse({'prompt': sensor_prompt,
 
 # convert index to name by looking up the index in the dictionary
 sensor_config['sensor_type'] = sensor_options[sensor_config['sensor_index']][0]
-# and also call the config method
-sensor_config_options = sensor_options[sensor_config['sensor_index']][1].config()
+# and also call the options method
+sensor_config_options = sensor_options[sensor_config['sensor_index']][1].options()
 
 # populate the sensor config dictionary
 for option in sensor_config_options:
@@ -99,13 +110,13 @@ for option in sensor_config_options:
 
 # Run the same for the FTP config
 ftp_config_options = [
-              {'name': 'username',
+              {'name': 'uname',
                'type': str,
                'prompt': 'Enter FTP server username'},
-              {'name': 'password',
+              {'name': 'pword',
                'type': str,
                'prompt': 'Enter FTP server password'},
-              {'name': 'hostname',
+              {'name': 'host',
                'type': str,
                'prompt': 'Enter FTP server hostname'},
               {'name': 'use_ftps',
