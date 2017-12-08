@@ -79,7 +79,7 @@ class USBSoundcardMic(object):
         self.server_sync_interval = self.record_length + self.capture_delay
 
         # Load alsactl file - increased microphone volume level
-        # subprocess.call('alsactl --file ./audio_sensor_scripts/asound.state restore', shell=True)
+        subprocess.call('alsactl --file ./audio_sensor_scripts/asound.state restore', shell=True)
 
         self.cleanup()
 
