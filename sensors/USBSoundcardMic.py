@@ -1,6 +1,7 @@
 import time
 import subprocess
 import os
+import sensors
 
 
 class USBSoundcardMic(object):
@@ -20,56 +21,12 @@ class USBSoundcardMic(object):
         # Initialise the sensor config, double checking the types of values. This
         # code uses the variables named and described in the config static to set
         # defaults and override with any passed in the config file.
-        defaults = self.config()
-        defaults = {var['name']: var['default'] for var in defaults}
+        opts = self.options()
+        opts = {var['name']: var for var in opts}
 
-        if config is not None and 'record_length' in config:
-            try:
-                self.record_length = float(config['record_length'])
-            except ValueError:
-                print("Invalid record length in sensor config ({}), using default."
-                      " ".format(config['record_length']))
-                self.record_length = defaults['record_length']
-        else:
-            self.record_length = defaults['record_length']
-
-        if config is not None and 'compress_data' in config:
-            # insist on 1/0 coding for boolean variables: bool('False') is a common gotcha
-            if config['compress_data'] in [0, 1]:
-                self.compress_data = bool(config['compress_data'])
-            else:
-                print("Invalid compress_data ({}) in sensor config, using default."
-                      " ".format(config['compress_data']))
-                self.compress_data = defaults['compress_data']
-        else:
-            self.compress_data = defaults['compress_data']
-
-        if config is not None and 'capture_delay' in config:
-            try:
-                self.capture_delay = float(config['capture_delay'])
-            except ValueError:
-                print("Invalid capture delay in sensor config ({}), using default."
-                      " ".format(config['capture_delay']))
-                self.capture_delay = defaults['capture_delay']
-        else:
-            self.capture_delay = defaults['capture_delay']
-
-        # That could all be done with a setattr loop (see commented code) which might
-        # be faster for a long list, but actually it is less obscure and code checkers
-        # work more easily if this is done simply, exposing the class variable names.
-
-        # for var in defaults:
-        #     if config is not None and var['name'] in config:
-        #         # check the type
-        #         var_type = type(var['default'])
-        #         try:
-        #             value = var_type(config[var['name']])
-        #             # set the variable
-        #             setattr(self, var['name'], value)
-        #         except ValueError:
-        #             print("Error setting {} in sensor config".format(var['name']))
-        #     else:
-        #         setattr(self, var['name'], var['default'])
+        self.record_length = sensors.set_option('record_length', config, opts)
+        self.compress_data = sensors.set_option('compress_data', config, opts)
+        self.capture_delay = sensors.set_option('capture_delay', config, opts)
 
         # set internal variables and required class variables
         self.working_file = 'currentlyRecording.wav'
@@ -78,13 +35,8 @@ class USBSoundcardMic(object):
         self.udir = udir
         self.server_sync_interval = self.record_length + self.capture_delay
 
-        # Load alsactl file - increased microphone volume level
-        subprocess.call('alsactl --file ./audio_sensor_scripts/asound.state restore', shell=True)
-
-        self.cleanup()
-
     @staticmethod
-    def config():
+    def options():
         """
         Static method defining the config options and defaults for the sensor class
         """
@@ -96,12 +48,21 @@ class USBSoundcardMic(object):
                  'type': int,
                  'default': 1,
                  'prompt': 'Should the audio data be compressed from WAV to VBR mp3?',
-                  'valid': [0, 1]},
+                 'valid': [0, 1]},
                 {'name': 'capture_delay',
                  'type': float,
                  'default': 0.0,
                  'prompt': 'How long should the system wait between audio samples?'}
                 ]
+
+    def setup(self):
+
+        try:
+            # Load alsactl file - increased microphone volume level
+            subprocess.call('alsactl --file ./audio_sensor_scripts/asound.state restore', shell=True)
+            self.cleanup()
+        except:
+            raise EnvironmentError
 
     def capture_data(self):
         """

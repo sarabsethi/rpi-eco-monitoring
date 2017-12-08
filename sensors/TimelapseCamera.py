@@ -1,6 +1,9 @@
 import datetime
+import time
 import subprocess
 import os
+import sensors
+
 
 class TimelapseCamera(object):
 
@@ -19,19 +22,12 @@ class TimelapseCamera(object):
         # Initialise the sensor config, double checking the types of values. This
         # code uses the variables named and described in the config static to set
         # defaults and override with any passed in the config file.
+        opts = self.options()
+        opts = {var['name']: var for var in opts}
 
-        defaults = self.config()
-        defaults = {var['name']: var['default'] for var in defaults}
-
-        if config is not None and 'capture_delay' in config:
-            try:
-                self.capture_delay = float(config['capture_delay'])
-            except ValueError:
-                print("Invalid capture delay in sensor config ({}), using default."
-                      " ".format(config['capture_delay']))
-                self.capture_delay = defaults['capture_delay']
-        else:
-            self.capture_delay = defaults['capture_delay']
+        # config options
+        self.device = sensors.set_option('device', config, opts)
+        self.capture_delay = sensors.set_option('capture_delay', config, opts)
 
         # set internal variables and required class variables
         self.current_file = None
@@ -40,15 +36,29 @@ class TimelapseCamera(object):
         self.server_sync_interval = self.capture_delay
 
     @staticmethod
-    def config():
+    def options():
         """
         Static method defining the config options and defaults for the sensor class
         """
-        return [{'name': 'capture_delay',
+        return [{'name': 'device',
+                 'type': str,
+                 'default': '/dev/video0',
+                 'prompt': 'What is the device name of the camera?'},
+                {'name': 'capture_delay',
                  'type': float,
                  'default': 86400,
-                 'prompt': 'What is the interval in seconds between images'}
+                 'prompt': 'What is the interval in seconds between images?'}
                 ]
+
+    def setup(self):
+        """
+        Method to check the sensor is ready for data capture
+        """
+
+        if os.path.exists(self.device):
+            pass
+        else:
+            raise IOError('No camera device detected at {}.'.format(self.device))
 
     def capture_data(self):
         """
@@ -63,15 +73,11 @@ class TimelapseCamera(object):
         ofile = os.path.join(self.wdir, self.current_file)
 
         # Name images by capture time
-        if os.path.exists('/dev/video0'):
-            print('\nTaking picture - smile!\n')
-            res = '2592x1944'
-            # Delay and skip some frames to make sure exposure is adjusted to lighting
-            cmd = 'fswebcam -D 5 -S 20 -p YUYV -r {} {}'
-            subprocess.call(cmd.format(res, ofile + '.jpg'), shell=True)
-        else:
-            print('No camera detected')
-            open(ofile + '_ERROR_no-camera-detected', 'a').close()
+        print('\nTaking picture - smile!\n')
+        res = '2592x1944'
+        # Delay and skip some frames to make sure exposure is adjusted to lighting
+        cmd = 'fswebcam -D 5 -S 20 -p YUYV -r {} {}'
+        subprocess.call(cmd.format(res, ofile + '.jpg'), shell=True)
 
     def postprocess(self):
         pass
