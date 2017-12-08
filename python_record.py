@@ -101,8 +101,7 @@ cleanup_tempfiles()
 # Edit this below part when you have implemented a new sensor type
 
 # Sensor classes
-from USBSoundcardMic import *
-from TimelapseCamera import *
+from sensors import *
 
 # Read config file and initialise appropriate sensor
 config = json.load(open('config.json'))
