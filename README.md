@@ -12,7 +12,7 @@ To setup the monitoring unit from [our pre-prepared SD card image](https://www.d
 * Make sure the timezone is set correctly. Check by typing ``sudo dpkg-reconfigure tzdata`` and following the prompts 
 * If your SD card is larger than the size of our pre-prepared image (4GB) run ``sudo raspi-config`` and choose: _Advanced Options_ -> _Expand Filesystem_. Press ``Esc`` when this is complete
 * Type ``sudo halt`` to shut down the Pi
-* Take the microSD card from the Pi, and make a copy of it onto your computer (How?). Now you can clone as many of these SD cards as you need for your monitoring devices with no extra setup required 
+* Take the microSD card from the Pi, and make a copy of it onto your computer [(How?)](https://www.raspberrypi.org/documentation/installation/installing-images/). Now you can clone as many of these SD cards as you need for your monitoring devices with no extra setup required 
 
 ### Setup from a stock Raspbian image
 If you would rather start using a stock Raspbian image, there's an extra couple of steps before you start the above process. The below steps assume you have downloaded and installed the [Raspbian Stretch Lite image](https://www.raspberrypi.org/downloads/raspbian/).
