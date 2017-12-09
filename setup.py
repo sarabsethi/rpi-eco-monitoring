@@ -42,10 +42,10 @@ def config_parse(opt, cnfg):
                 value = opt['default']
                 valid_choice = True
             elif target_type.__name__ == 'bool':
-                if value.lower() in ['t','true']:
+                if value.lower() in ['t', 'true']:
                     value = True
                     valid_choice = True
-                elif value.lower() in ['f','false']:
+                elif value.lower() in ['f', 'false']:
                     value = False
                     valid_choice = True
                 else:
@@ -107,7 +107,6 @@ sensor_config_options = sensor_options[sensor_config['sensor_index']][1].options
 for option in sensor_config_options:
     config_parse(option, sensor_config)
 
-
 # Run the same for the FTP config
 ftp_config_options = [
               {'name': 'uname',
@@ -128,11 +127,29 @@ ftp_config_options = [
 print("\nNow let's do the FTP server details...")
 ftp_config = {}
 
-# populate the sensor config dictionary
+# populate the ftp config dictionary
 for option in ftp_config_options:
     config_parse(option, ftp_config)
 
-config = {'ftp': ftp_config, 'sensor': sensor_config}
+# Run the same for the FTP config
+dir_config_options = [
+              {'name': 'working_dir',
+               'type': str,
+               'prompt': 'Enter the working directory path',
+               'default': '/home/pi/tmp_dir'},
+              {'name': 'upload_dir',
+               'type': str,
+               'prompt': 'Enter the upload directory path',
+               'default': '/home/pi/continuous_monitoring_data'}]
+
+print("\nNow let's do the directory details...")
+dir_config = {}
+
+# populate the sensor config dictionary
+for option in dir_config_options:
+    config_parse(option, dir_config)
+
+config = {'ftp': ftp_config, 'sensor': sensor_config, 'dir': dir_config}
 
 # save the config
 with open(config_file, 'w') as fp:
