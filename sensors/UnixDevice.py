@@ -11,7 +11,7 @@ class UnixDevice(object):
     template for other sensors.
     """
 
-    def __init__(self, wdir, udir, config=None):
+    def __init__(self, config=None):
         """
         Init method for the sensor class, taking the contents of the config
         options and using that to populate the Sensor specific settings. This
@@ -41,8 +41,8 @@ class UnixDevice(object):
         # starting values for other class variables
         self.start_time = None
         self.uncompressed_file = None
-        self.wdir = wdir
-        self.udir = udir
+        self.working_dir = None
+        self.upload_dir = None
         self.server_sync_interval = 3600
 
     @staticmethod
@@ -89,18 +89,25 @@ class UnixDevice(object):
         else:
             raise OSError('Device {} not found'.format(self.device))
 
-    def capture_data(self):
+    def capture_data(self, working_dir, upload_dir):
         """
         Method to capture data from the device. This method can either create the
         final file or create an intermediate file and then hand off to the
         compress method, allowing sample to run again whilst compress is run
         in the background.
 
+        Args:
+            working_dir: A working directory to use for file processing
+            upload_dir: The directory to write the final data file to for upload.
         Returns:
-            Generates a completed file
+            Generates a completed sample file
         """
 
-        self.uncompressed_file = os.path.join(self.wdir, uuid.uuid4().hex)
+        # set the working directory and upload directory
+        self.working_dir = working_dir
+        self.upload_dir = upload_dir
+
+        self.uncompressed_file = os.path.join(self.working_dir, uuid.uuid4().hex)
 
         outfile = open(self.uncompressed_file, 'wb')
         datastream = open(self.device, 'rb')
@@ -135,7 +142,7 @@ class UnixDevice(object):
 
         zipfile = 'final_{}.zip'.format(time.strftime('%d%m%Y_%H%M%S', self.start_time))
 
-        subprocess.call(["zip", os.path.join(self.udir, zipfile), self.uncompressed_file])
+        subprocess.call(["zip", os.path.join(self.upload_dir, zipfile), self.uncompressed_file])
         os.remove(self.uncompressed_file)
 
     def sleep(self):
