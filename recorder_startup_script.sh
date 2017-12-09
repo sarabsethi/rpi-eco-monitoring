@@ -52,10 +52,19 @@ echo "$changed_files" | grep --quiet "recorder_startup_script" && sudo reboot
 currentDate=$(date +"%Y-%m-%d_%H.%M")
 sed -i '1s/^/NEW BOOT TIME: '$currentDate'\n\n/' *_log.txt
 
+# Check the config exists
+if [ ! -f ./config.json ]; then
+    echo "Config file not found!";
+    exit 1
+fi
+
+# get the raspberry pi ID number, the python script also
+# adds it to the config.json
+piId=$(python discover_serial.py config.json)
+
 # Move old log files to upload folder, create new log filename
 sudo mkdir -p ./continuous_monitoring_data/logs/
 sudo mv *_log.txt ./continuous_monitoring_data/logs/
-piId=$(cat /proc/cpuinfo | grep Serial | cut -d ' '  -f 2)
 logFileName="$piId""_""$currentDate"_log.txt
 
 # Start recording script
