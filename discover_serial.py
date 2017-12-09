@@ -16,18 +16,18 @@ def discover_serial(config_file):
         f = open('/proc/cpuinfo', 'r')
         for line in f:
             if line[0:6] == 'Serial':
-                cpuserial = line[10:26]
+                cpu_serial = line[10:26]
         f.close()
     except:
-        cpuserial = "ERROR000000001"
+        cpu_serial = "ERROR000000001"
 
     # store it in the config file
     config = json.load(open(config_file, 'r'))
-    config['pi_id'] = cpuserial
+    config['cpu_serial'] = cpu_serial
     json.dump(config, open(config_file, 'w'))
 
     # echo it to std out
-    sys.stdout.write(cpuserial)
+    sys.stdout.write(cpu_serial)
 
 
 if __name__ == "__main__":
