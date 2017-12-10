@@ -1,86 +1,65 @@
 import os
+import sys
 import time
 import subprocess
 import shutil
 import signal
+import threading
 from datetime import datetime
 import json
-from pprint import pprint
+import sensors
+import logging
 
-print('Start of recording script...')
 
-# Print current git commit information
-print('Current git commit info:')
-subprocess.call('git log -1',shell=True)
-
-# Print current system time
-print('System time is {}'.format(datetime.now()))
-
-# Make sure in the correct dir (so paths all make sense)
-dir_path = os.path.dirname(os.path.realpath(__file__))
-os.chdir(dir_path)
-
-# Schedule restart at 2am (does in separate process)
-print('Scheduling restart for 2am')
-subprocess.call('(sudo shutdown -c && sudo shutdown -r 02:00) &',shell=True)
-
-# Clear the temporary files
-working_folder = './tmp_data'
-def cleanup_tempfiles():
-    print('Cleaning up temporary files')
-    shutil.rmtree(working_folder, ignore_errors=True)
-
-# Clean up when script is exited
-user_quit = False
 def exit_handler(signal, frame):
+    """
+    Function to tidy up when the record function is interrupted by SIGINT.
+    :param signal:
+    :param frame:
+    :return:
+    """
     print('On my way out!')
-    user_quit = True
+    die.set()
     cleanup_tempfiles()
     sensor.cleanup()
-    os._exit(0)
+    sys.exit()
 
-# Setup exit handler
-signal.signal(signal.SIGINT, exit_handler)
 
-# Extract Raspberry Pi serial from cpuinfo file
-def getserial():
-    cpuserial = "0000000000000000"
-    try:
-        f = open('/proc/cpuinfo','r')
-        for line in f:
-             if line[0:6]=='Serial':
-                cpuserial = line[10:26]
-        f.close()
-    except:
-        cpuserial = "ERROR000000000"
-    return cpuserial
+def ftp_server_sync(sync_interval, ftp_config, upload_dir, die):
 
-# Sync local files with remote server
-def server_sync_loop(sync_interval,ftp_details,data_top_folder_name):
+    """
+    Function to synchronize the upload data folder with the FTP server
+
+    Parameters:
+        sync_interval: The time interval between synchronisation connections
+        ftp_config: A dictionary holding the FTP configuration
+        udir: The upload directory to synchronise
+        die: A threading event to terminate the ftp server sync
+    """
+
     # Build ftp string from configured details
-    if ftp_details['use_ftps']:
-        start = 'ftps://'
+    if ftp_config['use_ftps']:
+        ftp_config['protocol'] = 'ftps'
     else:
-        start = 'ftp://'
-    ftp_string = '{}{}:{}@{}'.format(start,ftp_details['username'],ftp_details['password'],ftp_details['hostname'])
+        ftp_config['protocol'] = 'ftp'
+
+    ftp_string = '{protocol}://{uname}:{pword}@{host}'.format(**ftp_config)
 
     # Sleep for half interval so server sync is out of phase with the data capturing
     time.sleep(sync_interval/2)
 
-    while 1:
+    # keep running while the
+    while not die.is_set():
         # Update time from internet
-        print('\nUpdating time from internet before ftp sync')
-        subprocess.call('bash ./bash_update_time.sh',shell=True)
+        logging.INFO('Updating time from internet before ftp sync')
+        subprocess.call('bash ./bash_update_time.sh', shell=True)
 
-        print('\nStarted FTP sync\n')
-        subprocess.call('bash ./ftp_upload.sh {} {}'.format(ftp_string,data_top_folder_name), shell=True)
-        print('\nFinished FTP sync\n')
+        logging.info('Started FTP sync')
+        subprocess.call('bash ./ftp_upload.sh {} {}'.format(ftp_string, upload_dir), shell=True)
+        logging.INFO('\nFinished FTP sync\n')
 
-        # Check if user has quit
-        if user_quit==True:
-            break
-
-        # Perform next sync out of phase with data capturing (accounting for the time taken to perform last upload)
+        # Perform next sync out of phase with data capturing (accounting for the
+        # time taken to perform last upload)
         sync_t = latest_start_t + (sync_interval/2)
         wait_t = sync_t - time.time()
         while wait_t < 0:
@@ -89,72 +68,161 @@ def server_sync_loop(sync_interval,ftp_details,data_top_folder_name):
         print('\nWaiting {} secs to next sync\n'.format(wait_t))
         time.sleep(wait_t)
 
-# Set final folder to hold recorded files waiting to be synced
-serial = getserial()
-data_top_folder_name = 'continuous_monitoring_data'
-final_folder = './{}/RPiID-{}'.format(data_top_folder_name,serial)
 
-# Remove any temporary files left behind
-cleanup_tempfiles()
+def clean_dirs(working_dir, upload_dir):
+    """
+    Function to tidy up the directory structure, any files left in the working
+    directory and any directories in upload emptied by FTP mirroring
 
-###############################
-# Edit this below part when you have implemented a new sensor type
+    Args
+        working_dir: Path to the working directory
+        upload_dir: Path to the upload directory
+    """
+    logging.INFO('Cleaning up working directory')
+    shutil.rmtree(working_dir, ignore_errors=True)
 
-# Sensor classes
-from sensors import *
-
-# Read config file and initialise appropriate sensor
-config = json.load(open('config.json'))
-
-opts = config['sensor']['options']
-delay_between_captures = opts['delay_between_captures']
-print('delay_between_captures {}'.format(delay_between_captures))
-server_sync_interval = delay_between_captures
-
-# Do specific sensor initialisation
-if config['sensor']['type'].lower() == 'USBSoundcardMic'.lower():
-    sensor = USBSoundcardMic(opts['record_length'],opts['compress_data'])
-    # For audio, sync timings should depend on recorded file length
-    server_sync_interval += opts['record_length']
-    print('Using USBSoundcardMic sensor')
-elif config['sensor']['type'].lower() == 'TimelapseCamera'.lower():
-    sensor = TimelapseCamera()
-    print('Using TimelapseCamera sensor')
-else:
-    print('MAJOR ERROR: sensor type {} not found. Run \'python setup.py\' to fix config file'.format(config['sensor']['type']))
-    exit()
-
-###############################
-
-# Remove empty directories that may be left behind, from bottom up
-for subdir, dirs, files in os.walk(final_folder,topdown=False):
-    if not os.listdir(subdir):
-        print('removing empty directory: {}'.format(subdir))
-        shutil.rmtree(subdir, ignore_errors=True)
-
-# Initialise background thread to do remote sync
-sync_thread = Thread(target=server_sync_loop, args=(server_sync_interval,config['ftp'],data_top_folder_name,))
-sync_thread.start()
-
-while 1:
-    # Record start time so we know to time sync halfway through
-    latest_start_t = time.time()
-
-    # Folders to hold files
-    startDate = time.strftime('%Y-%m-%d')
-    temp_day_folder = '{}/{}'.format(working_folder,startDate)
-    final_day_folder = '{}/{}'.format(final_folder,startDate)
-    if not os.path.exists(temp_day_folder):
-        os.makedirs(temp_day_folder)
-    if not os.path.exists(final_day_folder):
-        os.makedirs(final_day_folder)
-
-    # Capture data from the sensor
-    raw_data_fname,final_fname_no_ext = sensor.capture_data(temp_day_folder,final_day_folder)
-
-    # Postprocess the raw data in a separate thread
-    postprocess_t = Thread(target=sensor.postprocess, args=(raw_data_fname,final_fname_no_ext,))
-    postprocess_t.start()
+    # Remove empty directories in the upload directory, from bottom up
+    for subdir, dirs, files in os.walk(upload_dir, topdown=False):
+        if not os.listdir(subdir):
+            logging.INFO('Removing empty upload directory: {}'.format(subdir))
+            shutil.rmtree(subdir, ignore_errors=True)
 
 
-    time.sleep(delay_between_captures)
+def record(config_file, logfile):
+
+    """
+    Main function to run the sensor sampling and FTP sync.
+    Args:
+        config_file: Path to the sensor configuration file
+        logfile: Path to the logfile to use
+    """
+
+    # configure logging
+    logging.basicConfig(filename=logfile, level=logging.INFO)
+    logging.INFO('Start of recording')
+
+    # Print current system time
+    logging.INFO('System time is {}'.format(datetime.now()))
+
+    # Print current git commit information
+    logging.INFO('Current git commit info:')
+    p = subprocess.Popen(['git', 'log', '-1'], stdout=subprocess.PIPE)
+    (stdout, _) = p.communicate()
+    logging.INFO(stdout)
+
+    # Read the config file and get the parts
+    try:
+        config = json.load(open(config_file))
+        ftp_config = config['ftp']
+        sensor_config = config['sensor']
+        sensor_type = sensor_config['sensor_type']
+        cpu_serial = config['cpu_serial']
+        working_dir = config['dir']['working_dir']
+        upload_dir = config['dir']['upload_dir']
+        logging.INFO('Configuration loaded')
+    except (IOError, KeyError):
+        logging.ERROR('Failed to load config')
+        sys.exit()
+
+    # Check working directories
+    if os.path.exists(working_dir) and os.path.isdir(working_dir):
+        logging.INFO('Using {} as working directory'.format(working_dir))
+    else:
+        try:
+            os.makedirs(working_dir)
+            logging.INFO('Created {} as working directory'.format(working_dir))
+        except OSError:
+            logging.ERROR('Could not create {} as working directory'.format(working_dir))
+            sys.exit()
+
+    # Check for / create an upload directory with a specific folder for
+    # output from this raspberry pi.
+    upload_dir_pi = os.path.join(upload_dir, cpu_serial)
+    if os.path.exists(upload_dir_pi) and os.path.isdir(upload_dir_pi):
+        logging.INFO('Using {} as upload directory'.format(upload_dir_pi))
+    else:
+        try:
+            os.makedirs(upload_dir_pi)
+            logging.INFO('Created {} as working directory'.format(upload_dir_pi))
+        except OSError:
+            logging.ERROR('Could not create {} as working directory'.format(upload_dir_pi))
+            sys.exit()
+
+    # Get a reference to the Sensor class
+    try:
+        sensor_class = getattr(sensors, sensor_type)
+        logging.INFO('Sensor type {} being configured.'.format(sensor_type))
+    except AttributeError:
+        logging.ERROR('Sensor type {} not found.'.format(sensor_type))
+        sys.exit()
+
+    # get a configured instance of the sensor
+    # TODO - not sure of exception classes here?
+    try:
+        sensor = sensor_class(sensor_config)
+        logging.INFO('Sensor config succeeded.'.format(sensor_type))
+    except ValueError as e:
+        logging.ERROR('Sensor config failed.'.format(sensor_type))
+        raise e
+
+    # If it passes config, does it pass setup.
+    if sensor.setup():
+        logging.INFO('Sensor setup succeeded')
+    else:
+        logging.ERROR('Sensor setup failed.')
+        sys.exit()
+
+    # Tidy up the directories
+    clean_dirs()
+
+    # Initialise background thread to do remote sync of the root upload directory
+    # Failure here does not preclude data capture and might be temporary so log
+    # errors but don't exit.
+    try:
+        die = threading.Event()
+        sync_thread = threading.Thread(target=ftp_server_sync, args=(sensor.server_sync_interval,
+                                                                     ftp_config, upload_dir, die))
+        sync_thread.start()
+        logging.INFO('Starting server sync every {} seconds'.format(sensor.server_sync_interval))
+    except:
+        logging.ERROR('Failed to start server sync, data will still be collected')
+
+    # Setup exit handler
+    signal.signal(signal.SIGINT, exit_handler)
+
+    # Schedule restart at 2am (does in separate process)
+    logging.INFO('Scheduling restart for 2am')
+    subprocess.call('(sudo shutdown -c && sudo shutdown -r 02:00) &', shell=True)
+
+    # Start recording
+    while True:
+
+        # Record start time so we know to time sync halfway through
+        latest_start_t = time.time()
+
+        # Create daily folders to hold files during this recording session
+        start_date = time.strftime('%Y-%m-%d')
+        session_working_dir = os.path.join(working_dir, start_date)
+        session_upload_dir = os.path.join(upload_dir_pi, start_date)
+
+        if not os.path.exists(session_working_dir):
+            os.makedirs(session_working_dir)
+
+        if not os.path.exists(session_upload_dir):
+            os.makedirs(session_upload_dir)
+
+        # Capture data from the sensor
+        sensor.capture_data(working_dir=session_working_dir, upload_dir=session_upload_dir)
+
+        # Postprocess the raw data in a separate thread
+        postprocess_t = threading.Thread(target=sensor.postprocess)
+        postprocess_t.start()
+
+        # Let the sensor sleep
+        sensor.sleep()
+
+
+if __name__ == "__main__":
+
+    # simply run record with two arguments for the config file and
+    record(sys.argv[1], sys.argv[2])
