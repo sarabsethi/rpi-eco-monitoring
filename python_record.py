@@ -51,12 +51,12 @@ def ftp_server_sync(sync_interval, ftp_config, upload_dir, die):
     # keep running while the
     while not die.is_set():
         # Update time from internet
-        logging.INFO('Updating time from internet before ftp sync')
+        logging.info('Updating time from internet before ftp sync')
         subprocess.call('bash ./bash_update_time.sh', shell=True)
 
         logging.info('Started FTP sync')
         subprocess.call('bash ./ftp_upload.sh {} {}'.format(ftp_string, upload_dir), shell=True)
-        logging.INFO('\nFinished FTP sync\n')
+        logging.info('\nFinished FTP sync\n')
 
         # Perform next sync out of phase with data capturing (accounting for the
         # time taken to perform last upload)
@@ -78,13 +78,13 @@ def clean_dirs(working_dir, upload_dir):
         working_dir: Path to the working directory
         upload_dir: Path to the upload directory
     """
-    logging.INFO('Cleaning up working directory')
+    logging.info('Cleaning up working directory')
     shutil.rmtree(working_dir, ignore_errors=True)
 
     # Remove empty directories in the upload directory, from bottom up
     for subdir, dirs, files in os.walk(upload_dir, topdown=False):
         if not os.listdir(subdir):
-            logging.INFO('Removing empty upload directory: {}'.format(subdir))
+            logging.info('Removing empty upload directory: {}'.format(subdir))
             shutil.rmtree(subdir, ignore_errors=True)
 
 
@@ -98,17 +98,23 @@ def record(config_file, logfile):
     """
 
     # configure logging
+
     logging.basicConfig(filename=logfile, level=logging.INFO)
-    logging.INFO('Start of recording')
+
+    stderrLogger=logging.StreamHandler()
+    stderrLogger.setFormatter(logging.Formatter(logging.BASIC_FORMAT))
+    logging.getLogger().addHandler(stderrLogger)
+
+    logging.info('Start of recording')
 
     # Print current system time
-    logging.INFO('System time is {}'.format(datetime.now()))
+    logging.info('System time is {}'.format(datetime.now()))
 
     # Print current git commit information
-    logging.INFO('Current git commit info:')
+    logging.info('Current git commit info:')
     p = subprocess.Popen(['git', 'log', '-1'], stdout=subprocess.PIPE)
     (stdout, _) = p.communicate()
-    logging.INFO(stdout)
+    logging.info(stdout)
 
     # Read the config file and get the parts
     try:
@@ -116,60 +122,66 @@ def record(config_file, logfile):
         ftp_config = config['ftp']
         sensor_config = config['sensor']
         sensor_type = sensor_config['sensor_type']
-        cpu_serial = config['cpu_serial']
-        working_dir = config['dir']['working_dir']
-        upload_dir = config['dir']['upload_dir']
-        logging.INFO('Configuration loaded')
+        working_dir = config['sys']['working_dir']
+        upload_dir = config['sys']['upload_dir']
+        logging.info('Configuration loaded')
     except (IOError, KeyError):
-        logging.ERROR('Failed to load config')
+        logging.error('Failed to load config')
         sys.exit()
+
+    # Load the cpu_serial from environment variable
+    try:
+        cpu_serial = os.environ['PI_ID']
+    except(KeyError):
+        logging.error('No environment variable set for cpu_serial')
+        cpu_serial = 'CPU_SERIAL_ERROR'
 
     # Check working directories
     if os.path.exists(working_dir) and os.path.isdir(working_dir):
-        logging.INFO('Using {} as working directory'.format(working_dir))
+        logging.info('Using {} as working directory'.format(working_dir))
     else:
         try:
             os.makedirs(working_dir)
-            logging.INFO('Created {} as working directory'.format(working_dir))
+            logging.info('Created {} as working directory'.format(working_dir))
         except OSError:
-            logging.ERROR('Could not create {} as working directory'.format(working_dir))
+            logging.error('Could not create {} as working directory'.format(working_dir))
             sys.exit()
 
     # Check for / create an upload directory with a specific folder for
     # output from this raspberry pi.
     upload_dir_pi = os.path.join(upload_dir, cpu_serial)
     if os.path.exists(upload_dir_pi) and os.path.isdir(upload_dir_pi):
-        logging.INFO('Using {} as upload directory'.format(upload_dir_pi))
+        logging.info('Using {} as upload directory'.format(upload_dir_pi))
     else:
         try:
             os.makedirs(upload_dir_pi)
-            logging.INFO('Created {} as working directory'.format(upload_dir_pi))
+            logging.info('Created {} as working directory'.format(upload_dir_pi))
         except OSError:
-            logging.ERROR('Could not create {} as working directory'.format(upload_dir_pi))
+            logging.error('Could not create {} as working directory'.format(upload_dir_pi))
             sys.exit()
 
     # Get a reference to the Sensor class
     try:
         sensor_class = getattr(sensors, sensor_type)
-        logging.INFO('Sensor type {} being configured.'.format(sensor_type))
+        logging.info('Sensor type {} being configured.'.format(sensor_type))
     except AttributeError:
-        logging.ERROR('Sensor type {} not found.'.format(sensor_type))
+        logging.error('Sensor type {} not found.'.format(sensor_type))
         sys.exit()
 
     # get a configured instance of the sensor
     # TODO - not sure of exception classes here?
     try:
         sensor = sensor_class(sensor_config)
-        logging.INFO('Sensor config succeeded.'.format(sensor_type))
+        logging.info('Sensor config succeeded.'.format(sensor_type))
     except ValueError as e:
-        logging.ERROR('Sensor config failed.'.format(sensor_type))
+        logging.error('Sensor config failed.'.format(sensor_type))
         raise e
 
     # If it passes config, does it pass setup.
     if sensor.setup():
-        logging.INFO('Sensor setup succeeded')
+        logging.info('Sensor setup succeeded')
     else:
-        logging.ERROR('Sensor setup failed.')
+        logging.error('Sensor setup failed.')
         sys.exit()
 
     # Tidy up the directories
@@ -183,15 +195,15 @@ def record(config_file, logfile):
         sync_thread = threading.Thread(target=ftp_server_sync, args=(sensor.server_sync_interval,
                                                                      ftp_config, upload_dir, die))
         sync_thread.start()
-        logging.INFO('Starting server sync every {} seconds'.format(sensor.server_sync_interval))
+        logging.info('Starting server sync every {} seconds'.format(sensor.server_sync_interval))
     except:
-        logging.ERROR('Failed to start server sync, data will still be collected')
+        logging.error('Failed to start server sync, data will still be collected')
 
     # Setup exit handler
     signal.signal(signal.SIGINT, exit_handler)
 
     # Schedule restart at 2am (does in separate process)
-    logging.INFO('Scheduling restart for 2am')
+    logging.info('Scheduling restart for 2am')
     subprocess.call('(sudo shutdown -c && sudo shutdown -r 02:00) &', shell=True)
 
     # Start recording
