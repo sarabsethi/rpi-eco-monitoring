@@ -58,15 +58,9 @@ if [ ! -f ./config.json ]; then
     exit 1
 fi
 
-# get the raspberry pi ID number, the python script also
-# adds it to the config.json
-piId=$(python discover_serial.py config.json)
-
-# Move old log files to upload folder, create new log filename
-sudo mkdir -p ./continuous_monitoring_data/logs/
-sudo mv *_log.txt ./continuous_monitoring_data/logs/
-logFileName="$piId""_""$currentDate"_log.txt
+# export the raspberry pi serial number to an environment variable
+export PI_ID=$(python discover_serial.py)
 
 # Start recording script
 printf 'End of startup script\n'
-sudo python -u python_record.py |& tee $logFileName
+sudo python -u python_record.py
