@@ -185,7 +185,7 @@ def record(config_file, logfile):
         sys.exit()
 
     # Tidy up the directories
-    clean_dirs()
+    clean_dirs(working_dir, upload_dir)
 
     # Initialise background thread to do remote sync of the root upload directory
     # Failure here does not preclude data capture and might be temporary so log
