@@ -164,12 +164,12 @@ def ftp_server_sync(sync_interval, ftp_config, upload_dir, die):
     # keep running while the
     while not die.is_set():
         # Update time from internet
-        logging.INFO('Updating time from internet before ftp sync')
+        logging.info('Updating time from internet before ftp sync')
         subprocess.call('bash ./bash_update_time.sh', shell=True)
 
         logging.info('Started FTP sync')
         subprocess.call('bash ./ftp_upload.sh {} {}'.format(ftp_string, upload_dir), shell=True)
-        logging.INFO('\nFinished FTP sync\n')
+        logging.info('\nFinished FTP sync\n')
 
         # Perform next sync out of phase with data capturing (accounting for the
         # time taken to perform last upload)
@@ -193,7 +193,7 @@ def clean_dirs(working_dir, upload_dir):
     """
 
     logger = logging.getLogger(__name__)
-    logger.critical('Cleaning up working directory')
+    logger.info('Cleaning up working directory')
     shutil.rmtree(working_dir, ignore_errors=True)
 
     # Remove empty directories in the upload directory, from bottom up
@@ -211,7 +211,6 @@ def continuous_recording(sensor, working_dir, upload_dir):
         config_file: Path to the sensor configuration file
         logfile: Path to the logfile to use
     """
-
 
     # Start recording
     while True:
@@ -231,7 +230,17 @@ def record(config_file, log_dir='/log'):
 
     # Get variables for the logfile. The log_dir can't be included in config
     # because we're not loading config until after logging has started.
-    cpu_serial = os.getenv('PI_ID')
+
+    # Load the cpu_serial from environment variable
+    # TODO - the issue here is the logfile for logging isn't available
+    # until _after_ we've got PI_ID to name it. I've tried to find a way
+    # to hold logging back and dump.
+    try:
+        cpu_serial = os.environ['PI_ID']
+    except KeyError:
+        logging.error('No environment variable set for cpu_serial')
+        cpu_serial = 'CPU_SERIAL_ERROR'
+
     start_time = datetime.now().strftime("%Y%m%d_%H%M")
     logfile = os.path.join(log_dir, 'rpi_eco_{}_{}.log'.format(cpu_serial, start_time))
 
@@ -262,6 +271,11 @@ def record(config_file, log_dir='/log'):
     except KeyError:
         logger.info('Failed to load config')
         sys.exit()
+
+    # Schedule restart at reboot time, running in a separate process
+    logger.info('Scheduling restart for {}'.format(reboot_time))
+    cmd = '(sudo shutdown -c && sudo shutdown -r {}) &'.format(reboot_time)
+    subprocess.call(cmd, shell=True)
 
     # Check working directory
     if os.path.exists(working_dir) and os.path.isdir(working_dir):
@@ -313,11 +327,6 @@ def record(config_file, log_dir='/log'):
     die = threading.Event()
     signal.signal(signal.SIGINT, exit_handler)
 
-    # Schedule restart at reboot time, running in a separate process
-    logger.info('Scheduling restart for {}'.format(reboot_time))
-    cmd = '(sudo shutdown -c && sudo shutdown -r {}) &'.format(reboot_time)
-    subprocess.call(cmd, shell=True)
-
     # Initialise background thread to do remote sync of the root upload directory
     # Failure here does not preclude data capture and might be temporary so log
     # errors but don't exit.
@@ -329,9 +338,11 @@ def record(config_file, log_dir='/log'):
     except:
         logger.error('Failed to start server sync, data will still be collected')
 
-
+    # TODO - something similar for the recording. We need a function similar to ftp_server_sync,
+    # currently continuous_recording is a stub for this, that can also be terminated by the exit
+    # handler
 
 if __name__ == "__main__":
 
-    # simply run  continuous sampling using the config file and
+    # simply run record with two arguments for the config file and
     record(sys.argv[1], sys.argv[2])
