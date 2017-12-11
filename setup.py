@@ -131,8 +131,8 @@ ftp_config = {}
 for option in ftp_config_options:
     config_parse(option, ftp_config)
 
-# Run the same for the FTP config
-dir_config_options = [
+# Run the same for the system config options
+sys_config_options = [
               {'name': 'working_dir',
                'type': str,
                'prompt': 'Enter the working directory path',
@@ -140,16 +140,20 @@ dir_config_options = [
               {'name': 'upload_dir',
                'type': str,
                'prompt': 'Enter the upload directory path',
-               'default': '/home/pi/continuous_monitoring_data'}]
+               'default': '/home/pi/continuous_monitoring_data'},
+              {'name': 'reboot_time',
+               'type': str,
+               'prompt': 'Enter the time for the daily reboot',
+               'default': '02:00'}]
 
-print("\nNow let's do the directory details...")
-dir_config = {}
+print("\nNow let's do the system details...")
+sys_config = {}
 
 # populate the sensor config dictionary
-for option in dir_config_options:
-    config_parse(option, dir_config)
+for option in sys_config_options:
+    config_parse(option, sys_config)
 
-config = {'ftp': ftp_config, 'sensor': sensor_config, 'dir': dir_config}
+config = {'ftp': ftp_config, 'sensor': sensor_config, 'sys': sys_config}
 
 # save the config
 with open(config_file, 'w') as fp:
