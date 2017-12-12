@@ -136,7 +136,14 @@ def exit_handler(signal, frame):
     logger = logging.getLogger(LOG)
     logger.info('SIGINT detected, shutting down')
     # set the event to signal threads
-    die.set()
+    raise StopMonitoring
+
+class StopMonitoring(Exception):
+    # This is a custom exception that gets thrown by the exit handler
+    # when SIGINT is detected. It allows a loop within a try/except block
+    # to break out and set the event to shutdown cleanly
+    pass
+
 
 def ftp_server_sync(sync_interval, ftp_config, upload_dir, die):
 
@@ -150,6 +157,8 @@ def ftp_server_sync(sync_interval, ftp_config, upload_dir, die):
         die: A threading event to terminate the ftp server sync
     """
 
+    logger = logging.getLogger(LOG)
+
     # Build ftp string from configured details
     if ftp_config['use_ftps']:
         ftp_config['protocol'] = 'ftps'
@@ -158,28 +167,24 @@ def ftp_server_sync(sync_interval, ftp_config, upload_dir, die):
 
     ftp_string = '{protocol}://{uname}:{pword}@{host}'.format(**ftp_config)
 
-    # Sleep for half interval so server sync is out of phase with the data capturing
-    time.sleep(sync_interval/2)
-
     # keep running while the
     while not die.is_set():
+
+        start = time.time()
+
         # Update time from internet
-        logging.info('Updating time from internet before ftp sync')
+        # TODO - is this necessary on _every_ loop? Not just at startup?
+        logger.info('Updating time from internet before ftp sync')
         subprocess.call('bash ./bash_update_time.sh', shell=True)
 
-        logging.info('Started FTP sync')
+        logger.info('Started FTP sync at {}'.format(datetime.now()))
         subprocess.call('bash ./ftp_upload.sh {} {}'.format(ftp_string, upload_dir), shell=True)
-        logging.info('\nFinished FTP sync\n')
+        logger.info('Finished FTP sync at {}.format(datetime.now()')
 
-        # Perform next sync out of phase with data capturing (accounting for the
-        # time taken to perform last upload)
-        sync_t = latest_start_t + (sync_interval/2)
-        wait_t = sync_t - time.time()
-        while wait_t < 0:
-            wait_t += sync_interval
-
-        print('\nWaiting {} secs to next sync\n'.format(wait_t))
-        time.sleep(wait_t)
+        # wait until the next sync interval
+        wait = sync_interval - (time.time() - start)
+        logger.info('Waiting {} secs to next sync'.format(wait))
+        time.sleep(wait)
 
 
 def clean_dirs(working_dir, upload_dir):
@@ -203,18 +208,21 @@ def clean_dirs(working_dir, upload_dir):
             shutil.rmtree(subdir, ignore_errors=True)
 
 
-def continuous_recording(sensor, working_dir, upload_dir):
+def continuous_recording(sensor, working_dir, upload_dir, die):
 
     """
     Runs a loop over the sensor sampling process
     Args:
-        config_file: Path to the sensor configuration file
-        logfile: Path to the logfile to use
+        sensor: A instance of one of the sensor classes
+        working_dir: Path to the working directory for recording
+        upload_dir: Path to the final directory used to upload processed files
+        die: A threading event to terminate the ftp server sync
     """
 
     # Start recording
-    while True:
-        pass
+    while not die.is_set():
+
+        record_sensor(sensor, working_dir, upload_dir, sleep=True)
 
 
 def record(config_file, log_dir='/log'):
@@ -322,25 +330,39 @@ def record(config_file, log_dir='/log'):
     # Now get the sensor
     sensor = configure_sensor(sensor_config)
 
-    # Create a threading event to pass termination events to threads
-    # and an event handler to set the event.
+    # Set up the threads to run and an event handler to allow them to be shutdown cleanly
     die = threading.Event()
     signal.signal(signal.SIGINT, exit_handler)
+    sync_thread = threading.Thread(target=ftp_server_sync, args=(sensor.server_sync_interval,
+                                                                 ftp_config, upload_dir, die))
+    record_thread = threading.Thread(target=ftp_server_sync, args=(sensor.server_sync_interval,
+                                                                 ftp_config, upload_dir, die))
 
     # Initialise background thread to do remote sync of the root upload directory
     # Failure here does not preclude data capture and might be temporary so log
     # errors but don't exit.
     try:
-        sync_thread = threading.Thread(target=ftp_server_sync, args=(sensor.server_sync_interval,
-                                                                     ftp_config, upload_dir, die))
+        # start the recorder
+        record_thread.start()
+        logger.info('Starting continuous recording at {}'.format(datetime.now()))
+        # wait a while to allow make the two threads run out of sync
+        time.sleep(sensor.server_sync_interval/2)
+        # start the FTP sync
         sync_thread.start()
-        logger.info('Starting server sync every {} seconds'.format(sensor.server_sync_interval))
+        logger.info('Starting server sync every {} seconds at {}'.format(sensor.server_sync_interval, datetime.now()))
+        # now run a loop that will continue with a small grain until
+        # an interrupt arrives, this is necessary to keep the program live
+        # and listening for interrupts
+        while True:
+            time.sleep(1)
     except:
-        logger.error('Failed to start server sync, data will still be collected')
+        # We've had an interrupt signal, so tell the threads to shutdown,
+        # wait for them to finish and then exit the program
+        die.set()
+        record_thread.join()
+        sync_thread.join()
+        logger.info('Recording and sync shutdown, exiting at {}'.format(datetime.now()))
 
-    # TODO - something similar for the recording. We need a function similar to ftp_server_sync,
-    # currently continuous_recording is a stub for this, that can also be terminated by the exit
-    # handler
 
 if __name__ == "__main__":
 
