@@ -2,7 +2,7 @@ import time
 import subprocess
 import os
 import sensors
-
+import logging
 
 class USBSoundcardMic(object):
 

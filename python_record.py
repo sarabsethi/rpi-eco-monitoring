@@ -284,7 +284,7 @@ def record(config_file, log_dir='logs'):
 
     # Schedule restart at reboot time, running in a separate process
     logging.info('Scheduling restart for {}'.format(reboot_time))
-    cmd = '(sudo shutdown -c && sudo shutdown -r {}) &'.format(reboot_time)
+    cmd = '(sudo shutdown -c && shutdown -r {}) &'.format(reboot_time)
     subprocess.call(cmd, shell=True)
 
     # Check working directory

@@ -3,6 +3,7 @@ import time
 import os
 import subprocess
 import sensors
+import logging
 
 class UnixDevice(object):
     """
@@ -115,6 +116,8 @@ class UnixDevice(object):
         self.start_time = time.gmtime()
         n_samples = 0
 
+        logging.info('Capturing {} samples from {} at sample rate {}'.format(self.total_samples,
+                                                            self.device,self.sample_rate))
         while n_samples < self.total_samples:
             # read the data and append to the file
             now = time.strftime("%d-%m-%Y %H:%M:%S", time.gmtime())
@@ -141,7 +144,7 @@ class UnixDevice(object):
         """
 
         zipfile = 'final_{}.zip'.format(time.strftime('%d%m%Y_%H%M%S', self.start_time))
-
+        logging.info('Zipping samples from {} to {}'.format(self.device, zipfile))
         subprocess.call(["zip", os.path.join(self.upload_dir, zipfile), self.uncompressed_file])
         os.remove(self.uncompressed_file)
 
