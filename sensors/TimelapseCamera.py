@@ -75,11 +75,11 @@ class TimelapseCamera(object):
         self.current_file = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
 
         # Record for a specific duration
-        print('\n{} - Started capture\n'.format(self.current_file))
+        logging.info('\n{} - Started capture\n'.format(self.current_file))
         ofile = os.path.join(self.upload_dir, self.current_file)
 
         # Name images by capture time
-        print('\nTaking picture - smile!\n')
+        logging.info('\nTaking picture - smile!\n')
         res = '2592x1944'
 
         # Delay and skip some frames to make sure exposure is adjusted to lighting

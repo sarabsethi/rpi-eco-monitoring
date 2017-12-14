@@ -79,7 +79,7 @@ class USBSoundcardMic(object):
         self.current_file = '{}_dur={}secs'.format(start_time, self.record_length)
 
         # Record for a specific duration
-        print('\n{} - Started recording\n'.format(self.current_file))
+        logging.info('\n{} - Started recording\n'.format(self.current_file))
         wfile = os.path.join(self.working_dir, self.working_file)
         ofile = os.path.join(self.working_dir, self.current_file)
         try:
@@ -87,10 +87,10 @@ class USBSoundcardMic(object):
             subprocess.call(cmd.format(self.record_length, wfile), shell=True)
             os.rename(wfile, ofile + '.wav')
         except subprocess.CalledProcessError:
-            print('Error recording from audio card. Creating dummy file')
+            logging.info('Error recording from audio card. Creating dummy file')
             open(ofile + '_ERROR_audio-record-failed', 'a').close()
 
-        print('\n{} - Finished recording\n'.format(self.current_file))
+        logging.info('\n{} - Finished recording\n'.format(self.current_file))
 
     def postprocess(self):
         """
@@ -105,15 +105,15 @@ class USBSoundcardMic(object):
             # Compress the raw audio file to mp3 format
             ofile = os.path.join(self.upload_dir, self.current_file) + '.mp3'
 
-            print('\n{} - Starting compression\n'.format(self.current_file))
+            logging.info('\n{} - Starting compression\n'.format(self.current_file))
             cmd = ('avconv -loglevel panic -i {} -codec:a libmp3lame -filter:a "volume=5" '
                    '-qscale:a 0 -ac 1 {} >/dev/null 2>&1')
             subprocess.call(cmd.format(wfile, ofile), shell=True)
-            print('\n{} - Finished compression\n'.format(self.current_file))
+            logging.info('\n{} - Finished compression\n'.format(self.current_file))
 
         else:
             # Don't compress, store as wav
-            print('\n{} - No postprocessing of audio data\n'.format(self.current_file))
+            logging.info('\n{} - No postprocessing of audio data\n'.format(self.current_file))
             ofile = os.path.join(self.upload_dir, self.current_file) + '.wav'
             os.rename(wfile, ofile)
 

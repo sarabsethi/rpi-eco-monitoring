@@ -43,7 +43,7 @@ class UnixDevice(object):
         self.uncompressed_file = None
         self.working_dir = None
         self.upload_dir = None
-        self.server_sync_interval = 3600
+        self.server_sync_interval = 20
 
     @staticmethod
     def options():

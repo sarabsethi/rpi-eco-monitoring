@@ -10,7 +10,7 @@ import json
 import sensors
 import logging
 
-# set a global name for a common logger for functions using this module
+# set a global name for a common logging for functions using this module
 LOG = 'rpi-eco-monitoring'
 
 
@@ -47,32 +47,29 @@ def configure_sensor(sensor_config):
         An instance of a sensor class.
     """
 
-    # start logging
-    logger = logging.getLogger(LOG)
-
     # Get a reference to the Sensor class
     sensor_type = sensor_config['sensor_type']
     try:
         sensor_class = getattr(sensors, sensor_type)
-        print('Sensor type {} being configured.'.format(sensor_type))
+        logging.info('Sensor type {} being configured.'.format(sensor_type))
     except AttributeError:
-        logger.critical('Sensor type {} not found.'.format(sensor_type))
+        logging.critical('Sensor type {} not found.'.format(sensor_type))
         sys.exit()
 
     # get a configured instance of the sensor
     # TODO - not sure of exception classes here?
     try:
         sensor = sensor_class(sensor_config)
-        print('Sensor config succeeded.'.format(sensor_type))
+        logging.info('Sensor config succeeded.'.format(sensor_type))
     except ValueError as e:
-        logger.critical('Sensor config failed.'.format(sensor_type))
+        logging.critical('Sensor config failed.'.format(sensor_type))
         raise e
 
     # If it passes config, does it pass setup.
     if sensor.setup():
-        print('Sensor setup succeeded')
+        logging.info('Sensor setup succeeded')
     else:
-        logger.critical('Sensor setup failed.')
+        logging.critical('Sensor setup failed.')
         sys.exit()
 
     return sensor
@@ -89,8 +86,6 @@ def record_sensor(sensor, working_dir, upload_dir, sleep=True):
         upload_dir: The upload directory root to use for completed files
         sleep: Boolean - should the sensor sleep be used.
     """
-
-    logger = logging.getLogger(LOG)
 
     # Create daily folders to hold files during this recording session
     start_date = time.strftime('%Y-%m-%d')
@@ -134,8 +129,7 @@ def exit_handler(signal, frame):
     :return:
     """
 
-    logger = logging.getLogger(LOG)
-    print('SIGINT detected, shutting down')
+    logging.info('SIGINT detected, shutting down')
     # set the event to signal threads
     raise StopMonitoring
 
@@ -158,8 +152,6 @@ def ftp_server_sync(sync_interval, ftp_config, upload_dir, die):
         die: A threading event to terminate the ftp server sync
     """
 
-    logger = logging.getLogger(LOG)
-
     # Build ftp string from configured details
     if ftp_config['use_ftps']:
         ftp_config['protocol'] = 'ftps'
@@ -174,18 +166,18 @@ def ftp_server_sync(sync_interval, ftp_config, upload_dir, die):
         start = time.time()
 
         # Update time from internet
-        print('Updating time from internet before ftp sync')
+        logging.info('Updating time from internet before ftp sync')
         subprocess.call('bash ./bash_update_time.sh', shell=True)
 
-        print('Started FTP sync at {}'.format(datetime.now()))
+        logging.info('Started FTP sync at {}'.format(datetime.now()))
         subprocess.call('bash ./ftp_upload.sh {} {}'.format(ftp_string, upload_dir), shell=True)
-        print('Finished FTP sync at {}'.format(datetime.now()))
+        logging.info('Finished FTP sync at {}'.format(datetime.now()))
 
         # wait until the next sync interval
         wait = sync_interval - (time.time() - start)
         while wait < 0:
             wait += sync_interval
-        print('Waiting {} secs to next sync'.format(wait))
+        logging.info('Waiting {} secs to next sync'.format(wait))
         time.sleep(wait)
 
 
@@ -199,14 +191,13 @@ def clean_dirs(working_dir, upload_dir):
         upload_dir: Path to the upload directory
     """
 
-    logger = logging.getLogger(LOG)
-    print('Cleaning up working directory')
+    logging.info('Cleaning up working directory')
     shutil.rmtree(working_dir, ignore_errors=True)
 
     # Remove empty directories in the upload directory, from bottom up
     for subdir, dirs, files in os.walk(upload_dir, topdown=False):
         if not os.listdir(subdir):
-            print('Removing empty upload directory: {}'.format(subdir))
+            logging.info('Removing empty upload directory: {}'.format(subdir))
             shutil.rmtree(subdir, ignore_errors=True)
 
 
@@ -254,25 +245,21 @@ def record(config_file, log_dir='/log'):
     start_time = datetime.now().strftime("%Y%m%d_%H%M")
     logfile = os.path.join(log_dir, 'rpi_eco_{}_{}.log'.format(cpu_serial, start_time))
 
-    logger = logging.getLogger(LOG)
-    logging.basicConfig(filename=logfile, level=logging.INFO)
-    print('Start of continuous sampling: {}'.format(start_time))
-
-    stderrLogger=logging.StreamHandler()
-    stderrLogger.setFormatter(logging.Formatter(logging.BASIC_FORMAT))
-    logging.getLogger(LOG).addHandler(stderrLogger)
+    logging.basicConfig(filename=logfile)
+    logging.getLogger().setLevel(logging.INFO)
+    logging.info('Start of continuous sampling: {}'.format(start_time))
 
     # Log current git commit information
     p = subprocess.Popen(['git', 'log', '-1', '--format="%H"'], stdout=subprocess.PIPE)
     (stdout, _) = p.communicate()
-    print('Current git commit hash: {}'.format(stdout.strip()))
+    logging.info('Current git commit hash: {}'.format(stdout.strip()))
 
     # Load the config file
     try:
         config = json.load(open(config_file))
-        print('Config file found')
+        logging.info('Config file found')
     except IOError:
-        logger.critical('Config file not found')
+        logging.critical('Config file not found')
         sys.exit()
 
     try:
@@ -281,38 +268,38 @@ def record(config_file, log_dir='/log'):
         working_dir = config['sys']['working_dir']
         upload_dir = config['sys']['upload_dir']
         reboot_time = config['sys']['reboot_time']
-        print('Config loaded')
+        logging.info('Config loaded')
     except KeyError:
-        print('Failed to load config')
+        logging.info('Failed to load config')
         sys.exit()
 
     # Schedule restart at reboot time, running in a separate process
-    print('Scheduling restart for {}'.format(reboot_time))
+    logging.info('Scheduling restart for {}'.format(reboot_time))
     cmd = '(sudo shutdown -c && sudo shutdown -r {}) &'.format(reboot_time)
     subprocess.call(cmd, shell=True)
 
     # Check working directory
     if os.path.exists(working_dir) and os.path.isdir(working_dir):
-        print('Using {} as working directory'.format(working_dir))
+        logging.info('Using {} as working directory'.format(working_dir))
     else:
         try:
             os.makedirs(working_dir)
-            print('Created {} as working directory'.format(working_dir))
+            logging.info('Created {} as working directory'.format(working_dir))
         except OSError:
-            logger.critical('Could not create {} as working directory'.format(working_dir))
+            logging.critical('Could not create {} as working directory'.format(working_dir))
             sys.exit()
 
     # Check for / create an upload directory with a specific folder for
     # output from this raspberry pi.
     upload_dir_pi = os.path.join(upload_dir, cpu_serial)
     if os.path.exists(upload_dir_pi) and os.path.isdir(upload_dir_pi):
-        print('Using {} as upload directory'.format(upload_dir_pi))
+        logging.info('Using {} as upload directory'.format(upload_dir_pi))
     else:
         try:
             os.makedirs(upload_dir_pi)
-            print('Created {} as upload directory'.format(upload_dir_pi))
+            logging.info('Created {} as upload directory'.format(upload_dir_pi))
         except OSError:
-            logger.critical('Could not create {} as upload directory'.format(upload_dir_pi))
+            logging.critical('Could not create {} as upload directory'.format(upload_dir_pi))
             sys.exit()
 
     # Clean directories
@@ -329,10 +316,10 @@ def record(config_file, log_dir='/log'):
         for log in existing_logs:
             os.rename(os.path.join(log_dir, log),
                       os.path.join(upload_dir_logs, log))
-            print('Moved {} to upload'.format(log))
+            logging.info('Moved {} to upload'.format(log))
     except OSError:
         # not critical - can leave logs in the log_dir
-        logger.error('Could not move existing logs to upload.')
+        logging.error('Could not move existing logs to upload.')
 
     # Now get the sensor
     sensor = configure_sensor(sensor_config)
@@ -350,13 +337,13 @@ def record(config_file, log_dir='/log'):
     # errors but don't exit.
     try:
         # start the recorder
-        print('Starting continuous recording at {}'.format(datetime.now()))
+        logging.info('Starting continuous recording at {}'.format(datetime.now()))
         record_thread.start()
         # wait a while to allow make the two threads run out of sync
         time.sleep(sensor.server_sync_interval/2)
         # start the FTP sync
         sync_thread.start()
-        print('Starting server sync every {} seconds at {}'.format(sensor.server_sync_interval, datetime.now()))
+        logging.info('Starting server sync every {} seconds at {}'.format(sensor.server_sync_interval, datetime.now()))
         # now run a loop that will continue with a small grain until
         # an interrupt arrives, this is necessary to keep the program live
         # and listening for interrupts
@@ -368,7 +355,7 @@ def record(config_file, log_dir='/log'):
         die.set()
         record_thread.join()
         sync_thread.join()
-        print('Recording and sync shutdown, exiting at {}'.format(datetime.now()))
+        logging.info('Recording and sync shutdown, exiting at {}'.format(datetime.now()))
 
 
 if __name__ == "__main__":
