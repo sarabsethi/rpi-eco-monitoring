@@ -3,7 +3,7 @@
 ftp_string=$1
 data_top_folder_name=$2
 
-if [ ! -d './'$data_top_folder_name ]; then
+if [ ! -d $data_top_folder_name ]; then
 	exit 1
 fi
 
