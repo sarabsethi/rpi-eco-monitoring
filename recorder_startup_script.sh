@@ -53,8 +53,9 @@ currentDate=$(date +"%Y-%m-%d_%H.%M")
 sed -i '1s/^/NEW BOOT TIME: '$currentDate'\n\n/' *_log.txt
 
 # Check the config exists
-if [ ! -f ./config.json ]; then
-    echo "Config file not found!";
+config_file="./config.json"
+if [ ! -f $config_file ]; then
+    echo "Config file not found! Run \'python setup.py\' to generate one";
     exit 1
 fi
 
@@ -63,4 +64,4 @@ export PI_ID=$(python discover_serial.py)
 
 # Start recording script
 printf 'End of startup script\n'
-sudo python -u python_record.py
+sudo python -u python_record.py $config_file

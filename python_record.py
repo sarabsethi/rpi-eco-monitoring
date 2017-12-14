@@ -218,7 +218,7 @@ def continuous_recording(sensor, working_dir, upload_dir, die):
         record_sensor(sensor, working_dir, upload_dir, sleep=True)
 
 
-def record(config_file, log_dir='/log'):
+def record(config_file, log_dir='logs'):
 
     """
     Function to setup, run and log continuous sampling from the sensor.
@@ -242,11 +242,20 @@ def record(config_file, log_dir='/log'):
         logging.error('No environment variable set for cpu_serial')
         cpu_serial = 'CPU_SERIAL_ERROR'
 
-    start_time = datetime.now().strftime("%Y%m%d_%H%M")
-    logfile = os.path.join(log_dir, 'rpi_eco_{}_{}.log'.format(cpu_serial, start_time))
-
-    logging.basicConfig(filename=logfile)
+    # Log to both stdout and the log file
     logging.getLogger().setLevel(logging.INFO)
+
+    start_time = datetime.now().strftime("%Y%m%d_%H%M")
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    logfile = os.path.join(log_dir, 'rpi_eco_{}_{}.log'.format(cpu_serial, start_time))
+    if not os.path.exists(logfile):
+        open(logfile,"w+")
+
+    hdlr = logging.FileHandler(filename=logfile)
+    logging.getLogger().addHandler(hdlr)
+    logging.getLogger().setLevel(logging.INFO)
+
     logging.info('Start of continuous sampling: {}'.format(start_time))
 
     # Log current git commit information
@@ -360,5 +369,5 @@ def record(config_file, log_dir='/log'):
 
 if __name__ == "__main__":
 
-    # simply run record with two arguments for the config file and
-    record(sys.argv[1], sys.argv[2])
+    # simply run record with one arguement - the path to the config file
+    record(sys.argv[1])
