@@ -148,7 +148,7 @@ def ftp_server_sync(sync_interval, ftp_config, upload_dir, die):
     Parameters:
         sync_interval: The time interval between synchronisation connections
         ftp_config: A dictionary holding the FTP configuration
-        upload_dir: The upload directory to synchronise
+        upload_dir: The upload directory to synchronise (top level, not the device specific subdirectory)
         die: A threading event to terminate the ftp server sync
     """
 
@@ -225,7 +225,7 @@ def record(config_file, logfile_name, log_dir='logs'):
 
     Args:
         config_file: The JSON config file to use to set up.
-        log_file: The file that the logs from this run should be stored to
+        logfile_name: The filename that the logs from this run should be stored to
         log_dir: A directory to be used for logging. Existing log files
         found in will be moved to upload.
     """
@@ -233,15 +233,17 @@ def record(config_file, logfile_name, log_dir='logs'):
     # Start logging immediately. The log_dir can't be included in config
     # because we're not loading config until after logging has started.
 
-    # Log to both stdout and the log file
-    logging.getLogger().setLevel(logging.INFO)
-    ch = logging.StreamHandler(sys.stdout)
-    logging.getLogger().addHandler(ch)
-    logging.getLogger().setLevel(logging.INFO)
-
+    # Create the logs directory and file if needed
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
     logfile = os.path.join(log_dir,logfile_name)
     if not os.path.exists(logfile):
         open(logfile, 'w+')
+
+    # Add handlers to logging so logs are sent to stdout and the file
+    logging.getLogger().setLevel(logging.INFO)
+    ch = logging.StreamHandler(sys.stdout)
+    logging.getLogger().addHandler(ch)
     hdlr = logging.FileHandler(filename=logfile)
     logging.getLogger().addHandler(hdlr)
 
@@ -253,12 +255,6 @@ def record(config_file, logfile_name, log_dir='logs'):
         cpu_serial = 'CPU_SERIAL_ERROR'
 
     start_time = datetime.now().strftime("%Y%m%d_%H%M")
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
-    #logfile = os.path.join(log_dir, 'rpi_eco_{}_{}.log'.format(cpu_serial, start_time))
-    #if not os.path.exists(logfile):
-    #    open(logfile,"w+")
-
 
     logging.info('Start of continuous sampling: {}'.format(start_time))
 
@@ -340,7 +336,7 @@ def record(config_file, logfile_name, log_dir='logs'):
     die = threading.Event()
     signal.signal(signal.SIGINT, exit_handler)
     sync_thread = threading.Thread(target=ftp_server_sync, args=(sensor.server_sync_interval,
-                                                                 ftp_config, upload_dir_pi, die))
+                                                                 ftp_config, upload_dir, die))
     record_thread = threading.Thread(target=continuous_recording, args=(sensor, working_dir,
                                                                     upload_dir_pi, die))
 
