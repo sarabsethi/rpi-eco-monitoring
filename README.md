@@ -25,7 +25,7 @@ You will need the Pi to be connected to the internet for the below process.
 * Clone this repository in the home directory of the Raspberry pi: ``git clone -b lts https://github.com/sarabsethi/rpi-eco-monitoring.git`` (see below regarding branches)
 * Make sure all the scripts in the repository are executable: ``chmod +x ~/rpi-eco-monitoring/*``
 * Configure the Pi to run ``recorder_startup_script.sh`` on boot by adding ``sudo -u pi ~/rpi-eco-monitoring/recorder_startup_script.sh;`` to the last line of the file ``/etc/profile`` (requires root)
-* Install the required packages: ``sudo apt-get -y install fswebcam lftp libav-tools usb-modeswitch ntpdate libvpx4``
+* Install the required packages: ``sudo apt-get -y install fswebcam lftp libav-tools usb-modeswitch ntpdate libvpx4 zip``
 * Then follow the instructions above to complete the setup
 
 **N.B.** This clones the long-term support branch, which will have software that has been extensively field-tested, whilst the ``dev`` branch will have the latest development code which may inherently be more unstable. For long remote deployments we recommend only using the LTS branch, and this is the branch used in our pre-prepared SD card images
