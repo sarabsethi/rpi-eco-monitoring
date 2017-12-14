@@ -173,7 +173,6 @@ def ftp_server_sync(sync_interval, ftp_config, upload_dir, die):
         start = time.time()
 
         # Update time from internet
-        # TODO - is this necessary on _every_ loop? Not just at startup?
         logger.info('Updating time from internet before ftp sync')
         subprocess.call('bash ./bash_update_time.sh', shell=True)
 
