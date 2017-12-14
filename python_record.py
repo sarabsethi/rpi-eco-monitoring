@@ -218,43 +218,47 @@ def continuous_recording(sensor, working_dir, upload_dir, die):
         record_sensor(sensor, working_dir, upload_dir, sleep=True)
 
 
-def record(config_file, log_dir='logs'):
+def record(config_file, logfile_name, log_dir='logs'):
 
     """
     Function to setup, run and log continuous sampling from the sensor.
 
     Args:
         config_file: The JSON config file to use to set up.
+        log_file: The file that the logs from this run should be stored to
         log_dir: A directory to be used for logging. Existing log files
         found in will be moved to upload.
     """
 
-    # Get variables for the logfile. The log_dir can't be included in config
+    # Start logging immediately. The log_dir can't be included in config
     # because we're not loading config until after logging has started.
 
+    # Log to both stdout and the log file
+    logging.getLogger().setLevel(logging.INFO)
+    ch = logging.StreamHandler(sys.stdout)
+    logging.getLogger().addHandler(ch)
+    logging.getLogger().setLevel(logging.INFO)
+
+    logfile = os.path.join(log_dir,logfile_name)
+    if not os.path.exists(logfile):
+        open(logfile, 'w+')
+    hdlr = logging.FileHandler(filename=logfile)
+    logging.getLogger().addHandler(hdlr)
+
     # Load the cpu_serial from environment variable
-    # TODO - the issue here is the logfile for logging isn't available
-    # until _after_ we've got PI_ID to name it. I've tried to find a way
-    # to hold logging back and dump.
     try:
         cpu_serial = os.environ['PI_ID']
     except KeyError:
         logging.error('No environment variable set for cpu_serial')
         cpu_serial = 'CPU_SERIAL_ERROR'
 
-    # Log to both stdout and the log file
-    logging.getLogger().setLevel(logging.INFO)
-
     start_time = datetime.now().strftime("%Y%m%d_%H%M")
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
-    logfile = os.path.join(log_dir, 'rpi_eco_{}_{}.log'.format(cpu_serial, start_time))
-    if not os.path.exists(logfile):
-        open(logfile,"w+")
+    #logfile = os.path.join(log_dir, 'rpi_eco_{}_{}.log'.format(cpu_serial, start_time))
+    #if not os.path.exists(logfile):
+    #    open(logfile,"w+")
 
-    hdlr = logging.FileHandler(filename=logfile)
-    logging.getLogger().addHandler(hdlr)
-    logging.getLogger().setLevel(logging.INFO)
 
     logging.info('Start of continuous sampling: {}'.format(start_time))
 
@@ -320,8 +324,7 @@ def record(config_file, log_dir='logs'):
         if not os.path.exists(upload_dir_logs):
             os.makedirs(upload_dir_logs)
 
-        existing_logs = [f for f in os.listdir(log_dir) if f.startswith('rpi_eco_') and
-                         f.endswith('.log') and f != logfile]
+        existing_logs = [f for f in os.listdir(log_dir) if f.endswith('.log') and f != logfile_name]
         for log in existing_logs:
             os.rename(os.path.join(log_dir, log),
                       os.path.join(upload_dir_logs, log))
@@ -370,4 +373,4 @@ def record(config_file, log_dir='logs'):
 if __name__ == "__main__":
 
     # simply run record with one arguement - the path to the config file
-    record(sys.argv[1])
+    record(sys.argv[1], sys.argv[2], sys.argv[3])
