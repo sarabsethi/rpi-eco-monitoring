@@ -2,7 +2,7 @@
 *.aac
 *.wav
 *.jpg
-
+*.log
 *.save
 *.json
 *_log.txt
