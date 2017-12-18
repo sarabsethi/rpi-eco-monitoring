@@ -1,11 +1,11 @@
 # rpi-eco-monitoring
 
-This is part of a project developing a fully autonomous ecosystem monitoring unit. The full details of the device is described in an [academic paper](http://www.bbc.com), **easy to follow step by step instructions of setting one up from scratch can be found [on our website](https://sarabsethi.github.io/autonomous_ecosystem_monitoring/)**, and this page focuses more on the details of the software running on the device, targetted at more technical users.
+This is part of a project developing a fully autonomous ecosystem monitoring unit. The full details of the device is described in an [academic paper](#), **easy to follow step by step instructions of setting one up from scratch can be found [on our website](https://sarabsethi.github.io/autonomous_ecosystem_monitoring/)**, and this page focuses more on the details of the software running on the device, targetted at more technical users.
 
 ## Setup
 
 ### Setup from our pre-prepared SD card image
-To setup the monitoring unit from [our pre-prepared SD card image](https://www.dropbox.com/s/q9zynny0aajrcue/SD_card_rpi-eco-monitoring_lts.img?dl=0) follow these steps:
+To setup the monitoring unit from [our pre-prepared SD card image](https://www.dropbox.com/s/zlvurpxskbys419/SD_card_rpi-eco-monitoring_lts.zip?dl=0) follow these steps:
 * Boot the Raspberry Pi with our prepared SD card inserted. Let the startup script run until it exits with the message "Config file not found!". If you would like to change an existing configuration, press ``Ctrl+C`` when you see "Start of ecosystem monitoring startup script"
 * Type ``cd ~/rpi-eco-monitoring``
 * Run ``python setup.py`` and follow the prompts. This will create a ``config.json`` file which contains the sensor type, its configuration and the FTP server details. The config file can be created manually, or imported from external storage without running ``setup.py`` if preferred 
