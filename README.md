@@ -32,16 +32,19 @@ You will need the Pi to be connected to the internet for the below process.
 
 ## Implementing new sensors
 
-To implement a new sensor type simply create a class in the ``sensors`` directory that implements the following functions:
-* ``__init__`` - initialisation of the sensor class
-* ``setup`` - setup of the sensor
-* ``capture_data`` - capture data from the sensor input and store it temporarily in raw unprocessed format
-* ``postprocess`` - process the raw data in the appropriate manner (e.g. compress it)
-* ``sleep`` - pause between data captures
-* ``cleanup`` - clean up any temporary files
-* ``options`` - a static method that defines the config options and defaults for the sensor class
+To implement a new sensor type simply create a class in the ``sensors`` directory that implements the following methods:
 
-For worked examples see classes made for monitoring audio from a USB audio card ([``USBSoundcardMic.py``](https://github.com/sarabsethi/rpi-eco-monitoring/blob/master/sensors/USBSoundcardMic.py)) and for capturing time-lapse images from a USB camera ([``TimelapseCamera.py``](https://github.com/sarabsethi/rpi-eco-monitoring/blob/master/sensors/TimelapseCamera.py))
+* ``__init__`` - This method is loads the sensor options from the JSON configuration file, falling back to the default options (see the ``options`` static method below) where an option isn't included in the config. The ``__init.py__`` file in the ``sensors`` module provides the shared function ``set_options`` to help with this.
+* ``options`` - This static method defines the config options and defaults for the sensor class
+* ``setup`` - This method should be used to check that the system resources required to run the sensor are available: required Debian packages, correctly installed devices.
+* ``capture_data`` - This method is used to capture data from the sensor input. The data will normally be stored to a working directory, set in the config file, in case further processing is needed before data is uploaded. If no further processing is needed, the data could be written directly to the upload directory.
+* ``postprocess`` - This method performs any postprocessing that needs to be done to the raw data (e.g. compressing it) before upload. If no post processing is needed, you must still provide the method, but it can simply ``pass``.
+* ``sleep`` - This method is a simple wrapper to pause between data captures - the pause length is implemented as a variable in the JSON config, so you're unlikely to need to change this method.
+* ``cleanup`` - This method is used to check for and clean up any temporary files when the system shuts down.
+
+Note that threads are used to run the ``capture_data`` and ``postprocess`` methods so that they operate independently.
+
+For worked examples see classes made for monitoring audio from a USB audio card ([``USBSoundcardMic.py``](https://github.com/sarabsethi/rpi-eco-monitoring/blob/master/sensors/USBSoundcardMic.py)) and for capturing time-lapse images from a USB camera ([``TimelapseCamera.py``](https://github.com/sarabsethi/rpi-eco-monitoring/blob/master/sensors/TimelapseCamera.py)). For a really simple example, see the UnixDevice sensor ([``UnixDevice.py``](https://github.com/sarabsethi/rpi-eco-monitoring/blob/master/sensors/UnixDevice.py)): this just demonstrates the use of the class methods to read data from one of the basic system devices.
 
 Finally add ``from sensors.YourNewSensor import YourNewSensor`` to ``sensors/__init__.py``
 
