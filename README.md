@@ -44,7 +44,7 @@ To implement a new sensor type simply create a class in the ``sensors`` director
 
 Note that threads are used to run the ``capture_data`` and ``postprocess`` methods so that they operate independently.
 
-For worked examples see classes made for monitoring audio from a USB audio card ([``USBSoundcardMic.py``](https://github.com/sarabsethi/rpi-eco-monitoring/blob/master/sensors/USBSoundcardMic.py)) and for capturing time-lapse images from a USB camera ([``TimelapseCamera.py``](https://github.com/sarabsethi/rpi-eco-monitoring/blob/master/sensors/TimelapseCamera.py)). For a really simple example, see the UnixDevice sensor ([``UnixDevice.py``](https://github.com/sarabsethi/rpi-eco-monitoring/blob/master/sensors/UnixDevice.py)): this just demonstrates the use of the class methods to read data from one of the basic system devices.
+For worked examples see classes made for monitoring audio from a USB audio card ([``USBSoundcardMic.py``](https://github.com/sarabsethi/rpi-eco-monitoring/blob/lts/sensors/USBSoundcardMic.py)) and for capturing time-lapse images from a USB camera ([``TimelapseCamera.py``](https://github.com/sarabsethi/rpi-eco-monitoring/blob/lts/sensors/TimelapseCamera.py)). For a really simple example, see the UnixDevice sensor ([``UnixDevice.py``](https://github.com/sarabsethi/rpi-eco-monitoring/blob/lts/sensors/UnixDevice.py)): this just demonstrates the use of the class methods to read data from one of the basic system devices.
 
 Finally add ``from sensors.YourNewSensor import YourNewSensor`` to ``sensors/__init__.py``
 
