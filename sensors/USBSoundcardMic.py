@@ -127,6 +127,6 @@ class USBSoundcardMic(object):
         """
         Method to make sure the system is clean to go
         """
-        wfile = os.path.join(self.wdir, self.working_file)
+        wfile = os.path.join(self.working_dir, self.working_file)
         if os.path.exists(wfile):
             os.remove(wfile)

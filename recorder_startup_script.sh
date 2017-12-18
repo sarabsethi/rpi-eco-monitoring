@@ -10,6 +10,7 @@ sudo service udev stop
 sudo service udev start
 
 tries=0
+max_tries=30
 while true; do
 	timeout 2s wget -q --spider http://google.com
 	if [ $? -eq 0 ]; then
@@ -18,10 +19,10 @@ while true; do
 	else
 	    printf "Offline\n"
 	fi
-	printf 'Waiting for internet connection before continuing (10 tries max)\n'
+	printf 'Waiting for internet connection before continuing ('$max_tries' tries max)\n'
 	sleep 1
 	let tries=tries+1
-	if [[ $tries -eq 10 ]] ;then
+	if [[ $tries -eq $max_tries ]] ;then
 		break
 	fi
 done
