@@ -1,6 +1,6 @@
 # rpi-eco-monitoring
 
-This is part of a project developing a fully autonomous ecosystem monitoring unit. The full details of the device is described in an [academic paper](#), **easy to follow step by step instructions of setting one up from scratch can be found [on our website](https://sarabsethi.github.io/autonomous_ecosystem_monitoring/)**, and this page focuses more on the details of the software running on the device, targetted at more technical users.
+This is part of a project developing a fully autonomous ecosystem monitoring unit. The full details of the device is described in an [academic paper](https://www.biorxiv.org/content/early/2017/12/18/236075), **easy to follow step by step instructions of setting one up from scratch can be found [on our website](https://sarabsethi.github.io/autonomous_ecosystem_monitoring/)**, and this page focuses more on the details of the software running on the device, targetted at more technical users.
 
 ## Setup
 
