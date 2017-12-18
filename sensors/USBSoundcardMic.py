@@ -39,16 +39,16 @@ class USBSoundcardMic(object):
         Static method defining the config options and defaults for the sensor class
         """
         return [{'name': 'record_length',
-                 'type': float,
-                 'default': 1200.0,
+                 'type': int,
+                 'default': 1200,
                  'prompt': 'What is the time in seconds of the audio segments?'},
                 {'name': 'compress_data',
                  'type': bool,
                  'default': True,
                  'prompt': 'Should the audio data be compressed from WAV to VBR mp3?'},
                 {'name': 'capture_delay',
-                 'type': float,
-                 'default': 0.0,
+                 'type': int,
+                 'default': 0,
                  'prompt': 'How long should the system wait between audio samples?'}
                 ]
 
@@ -57,7 +57,7 @@ class USBSoundcardMic(object):
         try:
             # Load alsactl file - increased microphone volume level
             subprocess.call('alsactl --file ./audio_sensor_scripts/asound.state restore', shell=True)
-            self.cleanup()
+            return True
         except:
             raise EnvironmentError
 
