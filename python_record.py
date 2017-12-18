@@ -368,5 +368,5 @@ def record(config_file, logfile_name, log_dir='logs'):
 
 if __name__ == "__main__":
 
-    # simply run record with one arguement - the path to the config file
+    # run record with three arguements - the path to the config file, the log directory and the log
     record(sys.argv[1], sys.argv[2], sys.argv[3])

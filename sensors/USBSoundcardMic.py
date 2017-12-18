@@ -101,7 +101,7 @@ class USBSoundcardMic(object):
         # current working file
         wfile = os.path.join(self.working_dir, self.current_file) + '.wav'
 
-        if self.compress_data == 'y':
+        if self.compress_data == True:
             # Compress the raw audio file to mp3 format
             ofile = os.path.join(self.upload_dir, self.current_file) + '.mp3'
 
