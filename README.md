@@ -6,9 +6,9 @@ This is part of a project developing a fully autonomous ecosystem monitoring uni
 
 ### Setup from our pre-prepared SD card image
 To setup the monitoring unit from [our pre-prepared SD card image](https://www.dropbox.com/s/q9zynny0aajrcue/SD_card_rpi-eco-monitoring_lts.img?dl=0) follow these steps:
-* Boot the Raspberry Pi with our prepared SD card inserted. When you see ``Recorder script started`` press ``Ctrl+C``
+* Boot the Raspberry Pi with our prepared SD card inserted. Let the startup script run until it exits with the message "Config file not found!"
 * Type ``cd ~/rpi-eco-monitoring``
-* Run ``python setup.py`` and follow the prompts. This will create a ``config.json`` file which contains the sensor type, its configuration and the FTP server details. The config file can be created manually, or imported from external storage without running ``setup.py``
+* Run ``python setup.py`` and follow the prompts. This will create a ``config.json`` file which contains the sensor type, its configuration and the FTP server details. The config file can be created manually, or imported from external storage without running ``setup.py`` if preferred 
 * Make sure the timezone is set correctly. Check by typing ``sudo dpkg-reconfigure tzdata`` and following the prompts 
 * If your SD card is larger than the size of our pre-prepared image (4GB) run ``sudo raspi-config`` and choose: _Advanced Options_ -> _Expand Filesystem_. Press ``Esc`` when this is complete
 * Type ``sudo halt`` to shut down the Pi
@@ -28,22 +28,26 @@ You will need the Pi to be connected to the internet for the below process.
 * Install the required packages: ``sudo apt-get -y install fswebcam lftp libav-tools usb-modeswitch ntpdate libvpx4 zip``
 * Then follow the instructions above to complete the setup
 
-**N.B.** This clones the long-term support branch, which will have software that has been extensively field-tested, whilst the ``dev`` branch will have the latest development code which may inherently be more unstable. For long remote deployments we recommend only using the LTS branch, and this is the branch used in our pre-prepared SD card images
+**N.B.** This clones the long-term support branch, which will have software that has been extensively field-tested, whilst the ``dev`` branch will have the latest development code which may inherently be more unstable. For long remote deployments we recommend only using the LTS branch, and this is the branch used in our pre-prepared SD card images. If you plan on implementing a new sensor, fork the codebase and make your changes, but be sure to submit a pull request back to this repo when you're done!
 
 ## Implementing new sensors
 
-To implement a new sensor type simply create a class that implements the three functions:
+To implement a new sensor type simply create a class in the ``sensors`` directory that implements the following functions:
+* ``__init__`` - initialisation of the sensor class
+* ``setup`` - setup of the sensor
 * ``capture_data`` - capture data from the sensor input and store it temporarily in raw unprocessed format
 * ``postprocess`` - process the raw data in the appropriate manner (e.g. compress it)
+* ``sleep`` - pause between data captures
 * ``cleanup`` - clean up any temporary files
+* ``options`` - a static method that defines the config options and defaults for the sensor class
 
-For worked examples see classes made for monitoring audio from a USB audio card (``USBSoundcardMic.py``) and for capturing time-lapse images from a USB camera (``TimelapseCamera.py``)
+For worked examples see classes made for monitoring audio from a USB audio card ([``USBSoundcardMic.py``](https://github.com/sarabsethi/rpi-eco-monitoring/blob/master/sensors/USBSoundcardMic.py)) and for capturing time-lapse images from a USB camera ([``TimelapseCamera.py``](https://github.com/sarabsethi/rpi-eco-monitoring/blob/master/sensors/TimelapseCamera.py))
 
-Then edit ``python_record.py`` and ``setup.py`` where indicated as comments in the code to include your new class of sensor
+Finally add ``from sensors.YourNewSensor import YourNewSensor`` to ``sensors/__init__.py``
 
 ## Authors
 This is a cross disciplinary research project based at Imperial College London, across the Faculties of Engineering, Natural Sciences and Life Sciences. 
 
-Sarab Sethi, Rob Ewers, Nick Jones, Lorenzo Picinali
+Sarab Sethi, Rob Ewers, Nick Jones, David Orme, Lorenzo Picinali
 
-More extensive documentation to come - any questions feel free to [drop me an email](mailto:s.sethi16@imperial.ac.uk)
+Feel free to [drop me an email](mailto:s.sethi16@imperial.ac.uk) with any questions, and contributions to this codebase are always welcome.
