@@ -38,7 +38,6 @@ eval $(ssh-agent -s)
 
 # Pull latest code from repo
 last_sha=$(git rev-parse HEAD)
-#git pull
 git fetch origin
 branch=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
 git reset --hard origin/$branch
@@ -51,7 +50,6 @@ echo "$changed_files" | grep --quiet "recorder_startup_script" && sudo reboot
 
 # Add in current date and time to log files
 currentDate=$(date +"%Y-%m-%d_%H.%M")
-sed -i '1s/^/NEW BOOT TIME: '$currentDate'\n\n/' *_log.txt
 
 # Check the config exists
 config_file="./config.json"

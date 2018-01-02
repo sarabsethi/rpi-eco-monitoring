@@ -85,7 +85,8 @@ class USBSoundcardMic(object):
         try:
             cmd = 'sudo arecord --device hw:1,0 --rate 44100 --format S16_LE --duration {} {}'
             subprocess.call(cmd.format(self.record_length, wfile), shell=True)
-            os.rename(wfile, ofile + '.wav')
+            self.uncomp_file = ofile + '.wav'
+            os.rename(wfile, self.uncomp_file)
         except subprocess.CalledProcessError:
             logging.info('Error recording from audio card. Creating dummy file')
             open(ofile + '_ERROR_audio-record-failed', 'a').close()
@@ -99,7 +100,7 @@ class USBSoundcardMic(object):
         """
 
         # current working file
-        wfile = os.path.join(self.working_dir, self.current_file) + '.wav'
+        wfile = self.uncomp_file
 
         if self.compress_data == True:
             # Compress the raw audio file to mp3 format
