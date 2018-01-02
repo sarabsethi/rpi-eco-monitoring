@@ -22,6 +22,8 @@ def discover_serial():
     except IOError:
         cpu_serial = "ERROR000000001"
 
+    cpu_serial = "RPiID-{}".format(cpu_serial)
+    
     # echo it to std out
     sys.stdout.write(cpu_serial)
 
