@@ -87,9 +87,10 @@ class USBSoundcardMic(object):
             subprocess.call(cmd.format(self.record_length, wfile), shell=True)
             self.uncomp_file = ofile + '.wav'
             os.rename(wfile, self.uncomp_file)
-        except subprocess.CalledProcessError:
+        except Exception:
             logging.info('Error recording from audio card. Creating dummy file')
             open(ofile + '_ERROR_audio-record-failed', 'a').close()
+            time.sleep(1)
 
         logging.info('\n{} - Finished recording\n'.format(self.current_file))
 
