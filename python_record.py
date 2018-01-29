@@ -300,6 +300,7 @@ def record(config_file, logfile_name, log_dir='logs'):
 
     # Check for / create an upload directory with a specific folder for
     # output from this raspberry pi.
+    upload_dir = os.path.join(upload_dir,'live_data')
     upload_dir_pi = os.path.join(upload_dir, cpu_serial)
     if os.path.exists(upload_dir_pi) and os.path.isdir(upload_dir_pi):
         logging.info('Using {} as upload directory'.format(upload_dir_pi))
