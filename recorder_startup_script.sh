@@ -5,6 +5,13 @@ printf '############################################\nStart of ecosystem monitor
 # just as a back up schedule a reboot for 24 hours (in case something goes wrong before scheduling the 2am reboot)
 (sudo shutdown -r +1440) &
 
+# One off expanding of filesystem to fill SD card
+if [ ! -f fs_expanded ]; then
+  sudo touch fs_expanded
+  sudo raspi-config --expand-rootfs
+  sudo reboot
+fi
+
 # Restart udev to simulate hotplugging of 3G dongle
 sudo service udev stop
 sudo service udev start
