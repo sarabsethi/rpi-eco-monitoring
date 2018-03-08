@@ -56,7 +56,7 @@ class TimelapseCamera(object):
         """
 
         if os.path.exists(self.device):
-            pass
+            return True
         else:
             raise IOError('No camera device detected at {}.'.format(self.device))
 
