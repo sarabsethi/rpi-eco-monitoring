@@ -1,9 +1,10 @@
 # Import individual sensor class files into the sensor module namespace
 # This does need to be edited as classes are added
-
+from sensors.SensorBase import SensorBase
 from sensors.TimelapseCamera import TimelapseCamera
 from sensors.USBSoundcardMic import USBSoundcardMic
 from sensors.UnixDevice import UnixDevice
+
 
 def set_option(var, config, opts):
     """

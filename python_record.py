@@ -133,6 +133,7 @@ def exit_handler(signal, frame):
     # set the event to signal threads
     raise StopMonitoring
 
+
 class StopMonitoring(Exception):
     # This is a custom exception that gets thrown by the exit handler
     # when SIGINT is detected. It allows a loop within a try/except block
@@ -358,7 +359,7 @@ def record(config_file, logfile_name, log_dir='logs'):
         # and listening for interrupts
         while True:
             time.sleep(1)
-    except:
+    except StopMonitoring:
         # We've had an interrupt signal, so tell the threads to shutdown,
         # wait for them to finish and then exit the program
         die.set()

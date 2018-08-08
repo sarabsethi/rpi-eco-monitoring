@@ -1,7 +1,25 @@
 # rpi-eco-monitoring
 
-This is part of a project developing a fully autonomous ecosystem monitoring unit. The full details of the device is described in an [academic paper](https://www.biorxiv.org/content/early/2017/12/18/236075), **easy to follow step by step instructions of setting one up from scratch can be found [on our website](https://sarabsethi.github.io/autonomous_ecosystem_monitoring/)**, and this page focuses more on the details of the software running on the device, targetted at more technical users.
+This is part of a project developing a fully autonomous ecosystem monitoring unit. The full details of the device is described in an [academic paper](https://www.biorxiv.org/content/early/2017/12/18/236075), **easy to follow step by step instructions of setting one up from scratch can be found [on our website](https://sarabsethi.github.io/autonomous_ecosystem_monitoring/)**, and this page focuses more on the details of the software running on the device, targeted at more technical users.
 
+
+## Code design
+
+The ``setup.py`` script is used to configure the required sensor to be used for data capture and creates a JSON config fle. Once a sensor configuration has been created, the recorder is started up using ``recorder_startup_script.sh``, which runs  the ``record()`` function from ``python_record.py``. This then does the following:
+
+1. Sets up error logging.
+2. Logs the id of the Pi device running the code and the current git version of the recorder script.
+3. Loads the config file.
+4. Sets the reboot time.
+5. Checks the working and upload directories for data files and copies previous logs into the upload directory.
+6. Runs the ``configure_sensor`` function to instantiate a sensor class object.
+7. Attaches the function ``exit_handler`` to run if a SIGINT signal is detected either from reboot or user interrupt.
+7. Creates a thread instance that executes the FTP synchronisation at a server sync interval defined by the sensor config using the ``ftp_server_sync()`` function.
+8. Creates a thread instance that runs the ``continuous_recording()``  function. This function is just a wrapper that repeats the ``sensor_record`` function while the thread is running.
+9. The ``sensor_record`` function itself executes the sensor methods: a) ``sensor.capture_data()`` to record whatever it is the sensor records; b) ``sensor.postprocess()`` is run in a separate thread to avoid locking up the ``sensor_record`` loop; and then c) ``sensor.sleep()`` to pause until the next sample is due.
+10. When a SIGINT occurs then ``exit_handler`` intercepts SIGINT and raises a ``StopMonitoring``  exception to exit the recording. The exception handling sets a threading event instance that has been passed to the two threads running ``ftp_server_sync()`` and  ``continuous_recording()``, and signals that the functions running in these thread should finish their current loop and exit. The ``record()`` function then exits.
+11. As long as  ``recorder_startup_script.sh`` is setup to run on boot, then the process repeats from the first step.
+ 
 ## Setup
 
 ### Setup from our pre-prepared SD card image
@@ -32,21 +50,21 @@ You will need the Pi to be connected to the internet for the below process.
 
 ## Implementing new sensors
 
-To implement a new sensor type simply create a class in the ``sensors`` directory that implements the following methods:
+To implement a new sensor type simply create a class in the ``sensors`` directory that extends the SensorBase class. The SensorBase class contains default implementations of the required class methods, which can be overridden in derived sensor classes. The required methods are:
 
 * ``__init__`` - This method is loads the sensor options from the JSON configuration file, falling back to the default options (see the ``options`` static method below) where an option isn't included in the config. The ``__init.py__`` file in the ``sensors`` module provides the shared function ``set_options`` to help with this.
 * ``options`` - This static method defines the config options and defaults for the sensor class
 * ``setup`` - This method should be used to check that the system resources required to run the sensor are available: required Debian packages, correctly installed devices.
 * ``capture_data`` - This method is used to capture data from the sensor input. The data will normally be stored to a working directory, set in the config file, in case further processing is needed before data is uploaded. If no further processing is needed, the data could be written directly to the upload directory.
-* ``postprocess`` - This method performs any postprocessing that needs to be done to the raw data (e.g. compressing it) before upload. If no post processing is needed, you must still provide the method, but it can simply ``pass``.
-* ``sleep`` - This method is a simple wrapper to pause between data captures - the pause length is implemented as a variable in the JSON config, so you're unlikely to need to change this method.
-* ``cleanup`` - This method is used to check for and clean up any temporary files when the system shuts down.
+* ``postprocess`` - This method performs any postprocessing that needs to be done to the raw data (e.g. compressing it) before upload. If no post processing is needed, you don't need to provide the method, as the default SensorBase implementation contains a simple stub to handle calls to ``Sensor.postprocess()``.
+* ``sleep`` - This method is a simple wrapper to pause between data captures - the pause length is implemented as a variable in the JSON config, so you're unlikely to need to override the base method.
 
 Note that threads are used to run the ``capture_data`` and ``postprocess`` methods so that they operate independently.
 
 For worked examples see classes made for monitoring audio from a USB audio card ([``USBSoundcardMic.py``](https://github.com/sarabsethi/rpi-eco-monitoring/blob/lts/sensors/USBSoundcardMic.py)) and for capturing time-lapse images from a USB camera ([``TimelapseCamera.py``](https://github.com/sarabsethi/rpi-eco-monitoring/blob/lts/sensors/TimelapseCamera.py)). For a really simple example, see the UnixDevice sensor ([``UnixDevice.py``](https://github.com/sarabsethi/rpi-eco-monitoring/blob/lts/sensors/UnixDevice.py)): this just demonstrates the use of the class methods to read data from one of the basic system devices.
 
 Finally add ``from sensors.YourNewSensor import YourNewSensor`` to ``sensors/__init__.py``
+
 
 ## Authors
 This is a cross disciplinary research project based at Imperial College London, across the Faculties of Engineering, Natural Sciences and Life Sciences. 

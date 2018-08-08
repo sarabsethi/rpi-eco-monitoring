@@ -4,18 +4,17 @@ import subprocess
 import os
 import sensors
 import logging
-from sensors.SensorBase import SensorBase
 
-class TimelapseCamera(SensorBase):
+class SensorBase(object):
 
     def __init__(self, config=None):
 
         """
-        A class to take photos from a still camera
+        A base class definition to set the methods for Sensor classes.
 
         Args:
-            config: A dictionary loaded from a config JSON file used to replace
-             the default settings of the sensor.
+            config: A dictionary loaded from a config JSON file used to update
+            the default settings of the sensor.
         """
 
         # Initialise the sensor config, double checking the types of values. This
@@ -25,7 +24,6 @@ class TimelapseCamera(SensorBase):
         opts = {var['name']: var for var in opts}
 
         # config options
-        self.device = sensors.set_option('device', config, opts)
         self.capture_delay = sensors.set_option('capture_delay', config, opts)
 
         # set internal variables and required class variables
@@ -39,25 +37,18 @@ class TimelapseCamera(SensorBase):
         """
         Static method defining the config options and defaults for the sensor class
         """
-        return [{'name': 'device',
-                 'type': str,
-                 'default': '/dev/video0',
-                 'prompt': 'What is the device name of the camera?'},
-                {'name': 'capture_delay',
-                 'type': float,
+        return [{'name': 'capture_delay',
+                 'type': int,
                  'default': 86400,
-                 'prompt': 'What is the interval in seconds between images?'}
+                 'prompt': 'What is the interval in seconds between data capture?'}
                 ]
 
     def setup(self):
         """
         Method to check the sensor is ready for data capture
         """
-
-        if os.path.exists(self.device):
-            return True
-        else:
-            raise IOError('No camera device detected at {}.'.format(self.device))
+        
+        pass
 
     def capture_data(self, working_dir, upload_dir):
         """
@@ -69,19 +60,16 @@ class TimelapseCamera(SensorBase):
         """
         self.working_dir = working_dir
         self.upload_dir = upload_dir
-
-        # Name files by capture day and time
         self.current_file = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
 
-        # Record for a specific duration
-        logging.info('\n{} - Started capture\n'.format(self.current_file))
-        ofile = os.path.join(self.upload_dir, self.current_file)
+    def postprocess(self):
+        pass
 
-        # Name images by capture time
-        logging.info('\nTaking picture - smile!\n')
-        res = '2592x1944'
+    def cleanup(self):
+        pass
 
-        # Delay and skip some frames to make sure exposure is adjusted to lighting
-        cmd = 'fswebcam -D 5 -S 20 -p YUYV -r {} {}'
-        subprocess.call(cmd.format(res, ofile + '.jpg'), shell=True)
-
+    def sleep(self):
+        """
+        Method to pause between data capture
+        """
+        time.sleep(self.capture_delay)

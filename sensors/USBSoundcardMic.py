@@ -3,8 +3,9 @@ import subprocess
 import os
 import sensors
 import logging
+from sensors.SensorBase import SensorBase
 
-class USBSoundcardMic(object):
+class USBSoundcardMic(SensorBase):
 
     def __init__(self, config=None):
 
@@ -119,16 +120,3 @@ class USBSoundcardMic(object):
             ofile = os.path.join(self.upload_dir, self.current_file) + '.wav'
             os.rename(wfile, ofile)
 
-    def sleep(self):
-        """
-        Method to pause between data capture
-        """
-        time.sleep(self.capture_delay)
-
-    def cleanup(self):
-        """
-        Method to make sure the system is clean to go
-        """
-        wfile = os.path.join(self.working_dir, self.working_file)
-        if os.path.exists(wfile):
-            os.remove(wfile)
