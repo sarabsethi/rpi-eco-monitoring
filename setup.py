@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import json
 import os
 import sys
@@ -33,15 +34,21 @@ def config_parse(opt, cnfg):
 
     print('{prompt} [{name}{vld_str}]{dft_str}'.format(**opt))
 
-    # need to be a little careful here in parsing raw inputs because
-    # bool() convert anything but an empty string to True
     while not valid_choice:
         value = raw_input()
         try:
+            # check for input and handle defaults
             if value == '' and 'default' in opt.keys():
                 value = opt['default']
                 valid_choice = True
-            elif target_type.__name__ == 'bool':
+            elif value == '' and 'default' not in opt.keys():
+                print('No value entered and no default value is set')
+                continue
+            
+            # need to be a little careful here in parsing raw inputs because
+            # bool() convert anything but an empty string to True, so handle 
+            # those differently
+            if target_type.__name__ == 'bool':
                 if value.lower() in ['t', 'true']:
                     value = True
                     valid_choice = True
@@ -49,17 +56,23 @@ def config_parse(opt, cnfg):
                     value = False
                     valid_choice = True
                 else:
-                    raise ValueError()
+                    print('Value not recognized as true or false')
+                    continue
             else:
-                value = target_type(value)
-        except ValueError:
-            print('Value must be of type {}'.format(target_type.__name__))
-        else:
+                try:
+                    value = target_type(value)
+                except ValueError:
+                    print('Value "{}" cannot be converted to type {}'.format(value, target_type.__name__))
+                    continue
+            
+            # check if entries appear in the list of valid options, if there is one
             if 'valid' in opt.keys() and value not in opt['valid']:
                 print('Value not in {}'.format(vld_opts))
             else:
                 valid_choice = True
                 cnfg[opt['name']] = value
+        except ValueError, AttributeError:
+            print('Unable to validate entered value. Please try again.')
 
 
 # Don't try and merge existing configs - could be a clash of option names
@@ -79,8 +92,10 @@ if os.path.exists(config_file):
         os.remove(config_file)
 
 # Get the config options for the sensors by loading the available sensor classes from
-# the sensors module. The sensor_classes variable is list of tuples: (name, class_reference)
+# the sensors module, ignoring the base class.
+# The sensor_classes variable is list of tuples: (name, class_reference)
 sensor_classes = inspect.getmembers(sensors, inspect.isclass)
+sensor_classes = [sc for sc in sensor_classes if sc[0] != 'SensorBase']
 sensor_numbers = [idx + 1 for idx in range(len(sensor_classes))]
 sensor_options = {nm: tp for nm, tp in zip(sensor_numbers, sensor_classes)}
 sensor_menu = [" " + str(ky) + ": " + tp[0] for ky, tp in sensor_options.iteritems()]
@@ -107,31 +122,48 @@ sensor_config_options = sensor_options[sensor_config['sensor_index']][1].options
 for option in sensor_config_options:
     config_parse(option, sensor_config)
 
-# Run the same for the FTP config
-ftp_config_options = [
-              {'name': 'uname',
-               'type': str,
-               'prompt': 'Enter FTP server username'},
-              {'name': 'pword',
-               'type': str,
-               'prompt': 'Enter FTP server password'},
-              {'name': 'host',
-               'type': str,
-               'prompt': 'Enter FTP server hostname'},
-              {'name': 'use_ftps',
-               'type': int,
-               'prompt': 'Use FTPS (1) or FTP (0)?',
-               'default': 1,
-               'valid': [0, 1]}]
+# test for offline mode
+offline_options = [{'name': 'offline_mode',
+                    'type': int,
+                    'prompt': 'Should the recorder run in offline mode (1) or use 3G to upload data to an FTP server?',
+                    'default': 0,
+                    'valid': [0, 1]}]
 
-print("\nNow let's do the FTP server details...")
+offline_config = {}
+
+# populate the offline config dictionary
+for option in offline_options:
+    config_parse(option, offline_config)
+
+# Populate the FTP config unless the user has chosen offline mode
+
 ftp_config = {}
 
-# populate the ftp config dictionary
-for option in ftp_config_options:
-    config_parse(option, ftp_config)
+if not offline_config['offline_mode']:
+    
+    ftp_config_options = [
+                  {'name': 'uname',
+                   'type': str,
+                   'prompt': 'Enter FTP server username'},
+                  {'name': 'pword',
+                   'type': str,
+                   'prompt': 'Enter FTP server password'},
+                  {'name': 'host',
+                   'type': str,
+                   'prompt': 'Enter FTP server hostname'},
+                  {'name': 'use_ftps',
+                   'type': int,
+                   'prompt': 'Use FTPS (1) or FTP (0)?',
+                   'default': 1,
+                   'valid': [0, 1]}]
 
-# Run the same for the system config options
+    print("\nNow let's do the FTP server details...")
+
+    # populate the ftp config dictionary
+    for option in ftp_config_options:
+        config_parse(option, ftp_config)
+
+# Popualte the system config options
 sys_config_options = [
               {'name': 'working_dir',
                'type': str,
@@ -153,7 +185,8 @@ sys_config = {}
 for option in sys_config_options:
     config_parse(option, sys_config)
 
-config = {'ftp': ftp_config, 'sensor': sensor_config, 'sys': sys_config}
+config = {'ftp': ftp_config, 'offline_mode': offline_config['offline_mode'],
+          'sensor': sensor_config, 'sys': sys_config}
 
 # save the config
 with open(config_file, 'w') as fp:
