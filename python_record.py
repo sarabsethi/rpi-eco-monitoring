@@ -26,14 +26,8 @@ Sensor setup and recording
 FTP server sync
 * ftp_server_sync(ftp_config, udir) # rolling synchronisation, intended to run in thread
 
-
-
-
-
-clean_dirs(wdir, udir) # cleans out trash in wdir and udir
-
-
-
+Utility
+* clean_dirs(wdir, udir) # cleans out trash in wdir and udir
 """
 
 
@@ -135,9 +129,12 @@ def exit_handler(signal, frame):
 
 
 class StopMonitoring(Exception):
-    # This is a custom exception that gets thrown by the exit handler
-    # when SIGINT is detected. It allows a loop within a try/except block
-    # to break out and set the event to shutdown cleanly
+    """
+    This is a custom exception that gets thrown by the exit handler
+    when SIGINT is detected. It allows a loop within a try/except block
+    to break out and set the event to shutdown cleanly
+    """
+    
     pass
 
 
@@ -275,6 +272,7 @@ def record(config_file, logfile_name, log_dir='logs'):
     try:
         ftp_config = config['ftp']
         sensor_config = config['sensor']
+        offline_mode = config['offline_mode']
         working_dir = config['sys']['working_dir']
         upload_dir = config['sys']['upload_dir']
         reboot_time = config['sys']['reboot_time']
@@ -337,8 +335,11 @@ def record(config_file, logfile_name, log_dir='logs'):
     # Set up the threads to run and an event handler to allow them to be shutdown cleanly
     die = threading.Event()
     signal.signal(signal.SIGINT, exit_handler)
-    sync_thread = threading.Thread(target=ftp_server_sync, args=(sensor.server_sync_interval,
-                                                                 ftp_config, upload_dir, die))
+    
+    if not offline_mode:
+        sync_thread = threading.Thread(target=ftp_server_sync, args=(sensor.server_sync_interval,
+                                                                     ftp_config, upload_dir, die))
+    
     record_thread = threading.Thread(target=continuous_recording, args=(sensor, working_dir,
                                                                     upload_dir_pi, die))
 
@@ -349,11 +350,16 @@ def record(config_file, logfile_name, log_dir='logs'):
         # start the recorder
         logging.info('Starting continuous recording at {}'.format(datetime.now()))
         record_thread.start()
-        # wait a while to allow make the two threads run out of sync
-        time.sleep(sensor.server_sync_interval/2)
-        # start the FTP sync
-        sync_thread.start()
-        logging.info('Starting server sync every {} seconds at {}'.format(sensor.server_sync_interval, datetime.now()))
+        
+        if offline_mode:
+            logging.info('Running in offline mode - no FTP synchronisation')
+        else:
+            # wait a while to allow make the two threads run out of sync
+            time.sleep(sensor.server_sync_interval/2)
+            # start the FTP sync
+            sync_thread.start()
+            logging.info('Starting FTP server sync every {} seconds at {}'.format(sensor.server_sync_interval, datetime.now()))
+        
         # now run a loop that will continue with a small grain until
         # an interrupt arrives, this is necessary to keep the program live
         # and listening for interrupts
@@ -364,7 +370,9 @@ def record(config_file, logfile_name, log_dir='logs'):
         # wait for them to finish and then exit the program
         die.set()
         record_thread.join()
-        sync_thread.join()
+        if not offline_mode:
+            sync_thread.join()
+        
         logging.info('Recording and sync shutdown, exiting at {}'.format(datetime.now()))
 
 
