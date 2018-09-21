@@ -44,8 +44,8 @@ class USBSoundcardMic(SensorBase):
                  'default': 1200,
                  'prompt': 'What is the time in seconds of the audio segments?'},
                 {'name': 'compress_data',
-                 'type': str,
-                 'default': 'True',
+                 'type': bool,
+                 'default': True,
                  'prompt': 'Should the audio data be compressed from WAV to VBR mp3?'},
                 {'name': 'capture_delay',
                  'type': int,
@@ -119,4 +119,3 @@ class USBSoundcardMic(SensorBase):
             logging.info('\n{} - No postprocessing of audio data\n'.format(self.current_file))
             ofile = os.path.join(self.upload_dir, self.current_file) + '.wav'
             os.rename(wfile, ofile)
-

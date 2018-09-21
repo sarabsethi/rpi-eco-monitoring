@@ -44,11 +44,11 @@ def config_parse(opt, cnfg):
             elif value == '' and 'default' not in opt.keys():
                 print('No value entered and no default value is set')
                 continue
-            
+
             # need to be a little careful here in parsing raw inputs because
-            # bool() convert anything but an empty string to True, so handle 
+            # bool() convert anything but an empty string to True, so handle
             # those differently
-            if target_type.__name__ == 'bool':
+            if target_type.__name__ == 'bool' and not isinstance(value, bool):
                 if value.lower() in ['t', 'true']:
                     value = True
                     valid_choice = True
@@ -64,7 +64,7 @@ def config_parse(opt, cnfg):
                 except ValueError:
                     print('Value "{}" cannot be converted to type {}'.format(value, target_type.__name__))
                     continue
-            
+
             # check if entries appear in the list of valid options, if there is one
             if 'valid' in opt.keys() and value not in opt['valid']:
                 print('Value not in {}'.format(vld_opts))
@@ -140,7 +140,7 @@ for option in offline_options:
 ftp_config = {}
 
 if not offline_config['offline_mode']:
-    
+
     ftp_config_options = [
                   {'name': 'uname',
                    'type': str,
