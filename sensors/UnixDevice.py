@@ -4,8 +4,9 @@ import os
 import subprocess
 import sensors
 import logging
+from sensors.SensorBase import SensorBase
 
-class UnixDevice(object):
+class UnixDevice(SensorBase):
     """
     Sensor class for using getting data from a unix device. This is a simple class
     for testing the code architecture on any unix like operating system and as a
@@ -20,8 +21,6 @@ class UnixDevice(object):
         resources needed to capture data should be in the setup() method.
 
         Args:
-            wdir: The path to the working directory used for file processing.
-            udir: The path to the final upload directory.
             config: A dictionary loaded from a config JSON file used to replace
              the default settings of the sensor.
         """
@@ -148,8 +147,3 @@ class UnixDevice(object):
         subprocess.call(["zip", os.path.join(self.upload_dir, zipfile), self.uncompressed_file])
         os.remove(self.uncompressed_file)
 
-    def sleep(self):
-        """
-        A method to pause the Sensor between samples.
-        """
-        time.sleep(self.capture_delay)
