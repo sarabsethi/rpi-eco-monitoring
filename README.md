@@ -1,7 +1,8 @@
 # rpi-eco-monitoring
 
-This is part of a project developing a fully autonomous ecosystem monitoring unit. The full details of the device is described in an [academic paper](https://www.biorxiv.org/content/early/2017/12/18/236075), **easy to follow step by step instructions of setting one up from scratch can be found [on our website](https://sarabsethi.github.io/autonomous_ecosystem_monitoring/)**, and this page focuses more on the details of the software running on the device, targeted at more technical users.
+This is part of a project developing a fully autonomous ecosystem monitoring unit. The full details of the device is described in an [academic paper](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13089), **easy to follow step by step instructions of setting one up from scratch can be found [on our website](https://sarabsethi.github.io/autonomous_ecosystem_monitoring/)**, and this page focuses more on the details of the software running on the device, targeted at more technical users. 
 
+Information on how to build these devices into a fully functional real-time monitoring network can be found in a further [academic paper](https://www.biorxiv.org/content/10.1101/2020.02.27.968867v1), and full code and deployment notes for the associated server-side software can be found in the [acoustics-db GitHub repository](https://github.com/ImperialCollegeLondon/acoustics-db). 
 
 ## Code design
 
@@ -72,3 +73,10 @@ This is a cross disciplinary research project based at Imperial College London, 
 Sarab Sethi, Rob Ewers, Nick Jones, David Orme, Lorenzo Picinali
 
 Feel free to [drop me an email](mailto:s.sethi16@imperial.ac.uk) with any questions, and contributions to this codebase are always welcome.
+
+## Citations
+Please cite the below papers when referring to this work:
+
+Sethi, SS, Ewers, RM, Jones, NS, Orme, CDL, Picinali, L. Robust, real‐time and autonomous monitoring of ecosystems with an open, low‐cost, networked device. Methods Ecol Evol. 2018; 9: 2383– 2387. https://doi.org/10.1111/2041-210X.13089 
+
+Sethi, SS, Ewers, RM, Jones, NS, Signorelli, A., Picinali, L, Orme, CDL. SAFE Acoustics: an open-source, real-time eco-acoustic monitoring network in the tropical rainforests of Borneo. biorxiv 968867. https://doi.org/10.1101/2020.02.27.968867
