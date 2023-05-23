@@ -4,6 +4,8 @@ This is part of a project developing a fully autonomous ecosystem monitoring uni
 
 Information on how to build these devices into a fully functional real-time monitoring network can be found in a further [academic paper](https://www.biorxiv.org/content/10.1101/2020.02.27.968867v1), and full code and deployment notes for the associated server-side software can be found in the [acoustics-db GitHub repository](https://github.com/ImperialCollegeLondon/acoustics-db). 
 
+**This code is not being actively maintained** and may not work on newer Raspberry Pi devices / OS images (originally written in 2018). Designs and firmware for a more recently built similar device, [Bugg](https://www.bugg.xyz) can be found open-source at https://github.com/bugg-resources.
+
 ## Code design
 
 The ``setup.py`` script is used to configure the required sensor to be used for data capture and creates a JSON config fle. Once a sensor configuration has been created, the recorder is started up using ``recorder_startup_script.sh``, which runs  the ``record()`` function from ``python_record.py``. This then does the following:
